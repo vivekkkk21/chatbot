@@ -1,210 +1,200 @@
 import streamlit as st
 import math
+import pandas as pd
 
-# ---------------------------------------------------------------------
-# 💡 Compatibility fix for Streamlit rerun (new/old versions)
-if not hasattr(st, "rerun"):
-    st.rerun = st.experimental_rerun
-# ---------------------------------------------------------------------
+st.set_page_config(page_title="Air Flow Calculator", page_icon="💨", layout="centered")
 
-st.set_page_config(page_title="Chiller Air Flow Assistant", page_icon="💨", layout="centered")
+st.title("💬 Smart Air Flow Assistant")
+st.write("👋 Hello! How can I help you today?")
 
-# Initialize session state
-if "step" not in st.session_state:
-    st.session_state.step = "greeting"
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "data" not in st.session_state:
-    st.session_state.data = {
-        "dia_unit": None,
-        "velocity_unit": None,
-        "diameter": None,
-        "num_readings": None,
-        "velocities": [],
+# Session state initialization
+if 'step' not in st.session_state:
+    st.session_state.step = "start"
+if 'equipment' not in st.session_state:
+    st.session_state.equipment = None
+if 'shape' not in st.session_state:
+    st.session_state.shape = None
+if 'unit' not in st.session_state:
+    st.session_state.unit = None
+if 'dimensions' not in st.session_state:
+    st.session_state.dimensions = {}
+if 'velocities' not in st.session_state:
+    st.session_state.velocities = []
+if 'vel_unit' not in st.session_state:
+    st.session_state.vel_unit = None
+if 'vel_count' not in st.session_state:
+    st.session_state.vel_count = 0
+if 'result' not in st.session_state:
+    st.session_state.result = None
+
+
+# Helper functions
+def parse_velocities(input_text):
+    return [float(v) for v in input_text.replace(',', ' ').split() if v.replace('.', '', 1).isdigit()]
+
+def convert_length(value, from_unit):
+    conv = {"m": 1, "cm": 0.01, "foot": 0.3048, "inches": 0.0254}
+    return value * conv[from_unit]
+
+def convert_velocity(value, from_unit):
+    conv = {
+        "m/s": 1, "cm/s": 0.01, "ft/s": 0.3048, "inch/s": 0.0254,
+        "m/min": 1/60, "cm/min": 0.01/60, "ft/min": 0.3048/60, "inches/min": 0.0254/60
     }
+    return value * conv[from_unit]
 
-# ---------------------------------------------------------------------
-# 💬 Helper function for chat bubble styling
-def chat_message(role, text):
-    if role == "user":
-        st.markdown(
-            f"""
-            <div style='text-align:right; margin:8px 0;'>
-                <div style='display:inline-block; background:#DCF8C6; padding:10px 14px;
-                border-radius:15px; max-width:80%; word-wrap:break-word; font-size:16px;'>
-                    👷‍♂️ {text}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+def calc_area(shape, dims_m):
+    if shape == "Square":
+        return dims_m['length'] * dims_m['breadth']
+    elif shape == "Round":
+        return math.pi * (dims_m['diameter'] / 2) ** 2
+
+def calc_flow(vels_m, area_m2):
+    avg_vel = sum(vels_m) / len(vels_m)
+    flow = avg_vel * area_m2
+    return avg_vel, flow
+
+
+# ---------------------- STEP FLOW ----------------------
+if st.session_state.step == "start":
+    if st.button("🔹 Calculate Air Flow"):
+        st.session_state.step = "choose_equipment"
+        st.rerun()
+
+elif st.session_state.step == "choose_equipment":
+    st.write("For which equipment would you like to calculate flow?")
+    equipment = st.radio("Select Equipment", ["Cooling Tower", "Ventilation Unit"], horizontal=True)
+    if st.button("Next ➡️"):
+        st.session_state.equipment = equipment
+        st.session_state.step = "choose_shape"
+        st.rerun()
+    if st.button("⬅️ Go Back"):
+        st.session_state.step = "start"
+        st.rerun()
+
+elif st.session_state.step == "choose_shape":
+    st.write("Specify the surface dimension of measured area")
+    shape = st.radio("Select Shape", ["Square", "Round"], horizontal=True)
+    if st.button("Next ➡️"):
+        st.session_state.shape = shape
+        st.session_state.step = "choose_unit"
+        st.rerun()
+    if st.button("⬅️ Go Back"):
+        st.session_state.step = "choose_equipment"
+        st.rerun()
+
+elif st.session_state.step == "choose_unit":
+    st.write("Select the measurement unit:")
+    unit = st.radio("Measurement Unit", ["m", "cm", "foot", "inches"], horizontal=True)
+    if st.button("Next ➡️"):
+        st.session_state.unit = unit
+        st.session_state.step = "enter_dimensions"
+        st.rerun()
+    if st.button("⬅️ Go Back"):
+        st.session_state.step = "choose_shape"
+        st.rerun()
+
+elif st.session_state.step == "enter_dimensions":
+    shape = st.session_state.shape
+    unit = st.session_state.unit
+    if shape == "Square":
+        length = st.number_input(f"Enter Length ({unit})", min_value=0.0, step=0.1)
+        breadth = st.number_input(f"Enter Breadth ({unit})", min_value=0.0, step=0.1)
+        if st.button("Next ➡️"):
+            st.session_state.dimensions = {"length": length, "breadth": breadth}
+            st.session_state.step = "enter_velocity_count"
+            st.rerun()
     else:
-        st.markdown(
-            f"""
-            <div style='text-align:left; margin:8px 0;'>
-                <div style='display:inline-block; background:#F1F0F0; padding:10px 14px;
-                border-radius:15px; max-width:80%; word-wrap:break-word; font-size:16px;'>
-                    🤖 {text}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        diameter = st.number_input(f"Enter Diameter ({unit})", min_value=0.0, step=0.1)
+        if st.button("Next ➡️"):
+            st.session_state.dimensions = {"diameter": diameter}
+            st.session_state.step = "enter_velocity_count"
+            st.rerun()
 
-def bot(msg):
-    st.session_state.messages.append(("assistant", msg))
-    chat_message("assistant", msg)
-
-def user(msg):
-    st.session_state.messages.append(("user", msg))
-    chat_message("user", msg)
-# ---------------------------------------------------------------------
-
-# Display chat history
-for sender, msg in st.session_state.messages:
-    chat_message(sender, msg)
-
-# ---------------------------------------------------------------------
-# Step 1: Greeting
-if st.session_state.step == "greeting":
-    msg = "Hello 👋, how can I help you today?"
-    bot(msg)
-    if st.button("🧮 Calculate Air Flow"):
-        st.session_state.step = "dia_unit"
-        st.session_state.messages.append(("assistant", msg))
+    if st.button("⬅️ Go Back"):
+        st.session_state.step = "choose_unit"
         st.rerun()
 
-# ---------------------------------------------------------------------
-# Step 2: Select diameter unit
-elif st.session_state.step == "dia_unit":
-    bot("Please select the **fan diameter unit**:")
-    cols = st.columns(4)
-    dia_units = ["m", "cm", "ft", "inches"]
-    for i, u in enumerate(dia_units):
-        if cols[i].button(u):
-            st.session_state.data["dia_unit"] = u
-            st.session_state.step = "enter_diameter"
-            st.rerun()
-
-# ---------------------------------------------------------------------
-# Step 3: Enter diameter
-elif st.session_state.step == "enter_diameter":
-    bot(f"Enter the fan diameter in {st.session_state.data['dia_unit']}:")
-    diameter = st.text_input("Fan Diameter:")
-    if diameter:
-        try:
-            st.session_state.data["diameter"] = float(diameter)
-            st.session_state.step = "vel_unit"
-            st.rerun()
-        except:
-            bot("⚠️ Please enter a valid numeric value.")
-
-# ---------------------------------------------------------------------
-# Step 4: Select velocity unit
-elif st.session_state.step == "vel_unit":
-    bot("Please select the **velocity measurement unit**:")
-    cols = st.columns(4)
-    vel_units = ["m/s", "cm/s", "ft/s", "inches/s", "m/min", "cm/min", "ft/min", "inches/min"]
-    for i, u in enumerate(vel_units[:4]):
-        if cols[i].button(u):
-            st.session_state.data["velocity_unit"] = u
-            st.session_state.step = "num_readings"
-            st.rerun()
-    cols2 = st.columns(4)
-    for i, u in enumerate(vel_units[4:]):
-        if cols2[i].button(u):
-            st.session_state.data["velocity_unit"] = u
-            st.session_state.step = "num_readings"
-            st.rerun()
-
-# ---------------------------------------------------------------------
-# Step 5: Number of readings
-elif st.session_state.step == "num_readings":
-    bot("How many velocity readings will you enter?")
-    num = st.text_input("Enter number of readings:")
-    if num:
-        try:
-            val = int(num)
-            if val > 0:
-                st.session_state.data["num_readings"] = val
-                st.session_state.data["velocities"] = []
-                st.session_state.step = "enter_velocities"
-                st.rerun()
-            else:
-                bot("⚠️ Please enter a positive number.")
-        except:
-            bot("⚠️ Please enter an integer value.")
-
-# ---------------------------------------------------------------------
-# Step 6: Enter velocities one by one
-elif st.session_state.step == "enter_velocities":
-    entered = len(st.session_state.data["velocities"])
-    total = st.session_state.data["num_readings"]
-    bot(f"Enter velocity reading {entered + 1} of {total} ({st.session_state.data['velocity_unit']}):")
-    vel = st.text_input("Velocity Value:")
-    col1, col2 = st.columns(2)
-    if col1.button("Submit Velocity"):
-        if vel:
-            try:
-                val = float(vel)
-                st.session_state.data["velocities"].append(val)
-                if len(st.session_state.data["velocities"]) == total:
-                    st.session_state.step = "review"
-                st.rerun()
-            except:
-                bot("⚠️ Please enter a valid numeric value.")
-    if col2.button("🔙 Go Back"):
-        if entered > 0:
-            st.session_state.data["velocities"].pop()
-            st.rerun()
-
-# ---------------------------------------------------------------------
-# Step 7: Review & Modify
-elif st.session_state.step == "review":
-    bot("Here are your entered velocity readings:")
-    velocities = st.session_state.data["velocities"]
-    st.table({"Reading No.": list(range(1, len(velocities)+1)), "Velocity": velocities})
-
-    col1, col2, col3 = st.columns(3)
-    if col1.button("✅ Proceed"):
-        st.session_state.step = "calculate"
+elif st.session_state.step == "enter_velocity_count":
+    count = st.number_input("Enter how many velocity readings you will provide (strict limit)", min_value=1, step=1)
+    if st.button("Next ➡️"):
+        st.session_state.vel_count = count
+        st.session_state.step = "choose_velocity_unit"
         st.rerun()
-    if col2.button("✏️ Modify Readings"):
+    if st.button("⬅️ Go Back"):
+        st.session_state.step = "enter_dimensions"
+        st.rerun()
+
+elif st.session_state.step == "choose_velocity_unit":
+    st.write("Select the velocity unit:")
+    vel_unit = st.radio("Velocity Unit", ["m/s", "cm/s", "ft/s", "inch/s", "m/min", "cm/min", "ft/min", "inches/min"], horizontal=False)
+    if st.button("Next ➡️"):
+        st.session_state.vel_unit = vel_unit
+        st.session_state.velocities = []
         st.session_state.step = "enter_velocities"
         st.rerun()
-    if col3.button("🔙 Go Back"):
-        st.session_state.step = "num_readings"
+    if st.button("⬅️ Go Back"):
+        st.session_state.step = "enter_velocity_count"
         st.rerun()
 
-# ---------------------------------------------------------------------
-# Step 8: Calculate & Show Results
-elif st.session_state.step == "calculate":
-    data = st.session_state.data
-    avg_velocity = sum(data["velocities"]) / len(data["velocities"])
-    dia = data["diameter"]
+elif st.session_state.step == "enter_velocities":
+    vel_unit = st.session_state.vel_unit
+    count = st.session_state.vel_count
+    st.write(f"Enter {count} velocity readings in **{vel_unit}**:")
+    next_idx = len(st.session_state.velocities) + 1
+    if next_idx <= count:
+        val = st.number_input(f"Velocity reading #{next_idx}", min_value=0.0, step=0.1)
+        if st.button("Add Reading"):
+            st.session_state.velocities.append(val)
+            st.rerun()
+    if len(st.session_state.velocities) == count:
+        if st.button("Review ➡️"):
+            st.session_state.step = "review_table"
+            st.rerun()
 
-    # Convert diameter to meters
-    unit_conv = {"m": 1, "cm": 0.01, "ft": 0.3048, "inches": 0.0254}
-    dia_m = dia * unit_conv[data["dia_unit"]]
-    area = math.pi * (dia_m / 2) ** 2
+    if st.button("⬅️ Go Back"):
+        st.session_state.step = "choose_velocity_unit"
+        st.rerun()
 
-    # Convert velocity to m/s
-    vel_conv = {
-        "m/s": 1, "cm/s": 0.01, "ft/s": 0.3048, "inches/s": 0.0254,
-        "m/min": 1 / 60, "cm/min": 0.01 / 60, "ft/min": 0.3048 / 60, "inches/min": 0.0254 / 60,
-    }
-    avg_vel_m_s = avg_velocity * vel_conv[data["velocity_unit"]]
-    flow_m3_s = avg_vel_m_s * area
+elif st.session_state.step == "review_table":
+    st.write("Review your entered velocity readings (editable):")
+    df = pd.DataFrame(st.session_state.velocities, columns=["Velocity"])
+    edited_df = st.data_editor(df, num_rows="dynamic", key="vel_edit")
+    st.session_state.velocities = edited_df["Velocity"].tolist()
 
-    bot(f"**Average Velocity:** {avg_velocity:.2f} {data['velocity_unit']}")
-    bot(f"**Fan Area:** {area:.2f} m²")
-    bot(f"**Calculated Air Flow:** {flow_m3_s:.2f} m³/s")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        if st.button("➕ Add Extra Reading"):
+            st.session_state.velocities.append(0.0)
+            st.rerun()
+    with col2:
+        if st.button("🔙 Go Back"):
+            st.session_state.step = "enter_velocities"
+            st.rerun()
+    with col3:
+        if st.button("🔁 Modify"):
+            st.info("You can edit values directly above.")
+    with col4:
+        if st.button("✅ Proceed"):
+            st.session_state.step = "result"
+            st.rerun()
 
-    # Convert back to user's original velocity unit (if possible)
-    flow_in_original_unit = flow_m3_s / vel_conv[data["velocity_unit"]]
-    bot(f"**Equivalent Air Flow:** {flow_in_original_unit:.2f} (based on {data['velocity_unit']})")
+elif st.session_state.step == "result":
+    dims_m = {k: convert_length(v, st.session_state.unit) for k, v in st.session_state.dimensions.items()}
+    area_m2 = calc_area(st.session_state.shape, dims_m)
+    vels_m = [convert_velocity(v, st.session_state.vel_unit) for v in st.session_state.velocities]
+    avg_m, flow_m3s = calc_flow(vels_m, area_m2)
 
-    if st.button("🔁 Start Over"):
-        for key in ["step", "messages", "data"]:
+    st.success(f"""
+    ✅ **Calculation Complete!**
+
+    - Equipment: {st.session_state.equipment}  
+    - Shape: {st.session_state.shape}  
+    - Average Velocity: {avg_m:.3f} m/s  
+    - Air Flow Rate: {flow_m3s:.4f} m³/s
+    """)
+
+    if st.button("🔄 Start New Calculation"):
+        for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
