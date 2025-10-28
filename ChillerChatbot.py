@@ -4,7 +4,7 @@ import pandas as pd
 
 st.set_page_config(page_title="Air Flow Calculator", page_icon="💨", layout="centered")
 
-st.title("💬 Smart Air Flow Assistant")
+st.title("💬 Smart Chiller Air Flow Assistant")
 st.write("👋 Hello! How can I help you today?")
 
 # Session state initialization
@@ -84,7 +84,7 @@ elif st.session_state.step == "choose_shape":
         st.rerun()
 
 elif st.session_state.step == "choose_unit":
-    st.write("Select the measurement unit:")
+    st.write("Select the measurement unit for surface area:")
     unit = st.radio("Measurement Unit", ["m", "cm", "foot", "inches"], horizontal=True)
     if st.button("Next ➡️"):
         st.session_state.unit = unit
@@ -198,3 +198,4 @@ elif st.session_state.step == "result":
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+
