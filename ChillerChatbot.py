@@ -1,11 +1,32 @@
 import streamlit as st
 import math
 import pandas as pd
+from streamlit_lottie import st_lottie
+import requests
+import time
 
 st.set_page_config(page_title="Air Flow Calculator", page_icon="💨", layout="centered")
 
 st.title("🤖 Smart Chiller Air Flow Assistant")
 st.write("👋 Hello! How can I help you today?")
+
+# New Animation section
+
+# Function to load a Lottie animation from a URL
+def load_lottieurl(url):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
+
+# Load a waving robot animation (you can replace this URL with any Lottie animation)
+robot_animation = load_lottieurl("https://lottiefiles.com/free-animation/robotsaludando-ZnoACNm8G9.json")
+
+# Show animation for 2 seconds before displaying title
+with st.spinner("Starting assistant..."):
+    st_lottie(robot_animation, height=200, key="hello_robot")
+    time.sleep(2)
+st.title("💬 Smart Air Flow Assistant")
 
 # Session state initialization
 if 'step' not in st.session_state:
@@ -198,5 +219,6 @@ elif st.session_state.step == "result":
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+
 
 
