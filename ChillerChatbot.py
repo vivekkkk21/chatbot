@@ -4,7 +4,7 @@ import pandas as pd
 
 st.set_page_config(page_title="Air Flow Calculator", page_icon="💨", layout="centered")
 
-st.title("💬 Smart Chiller Air Flow Assistant")
+st.title("🤖 Smart Chiller Air Flow Assistant")
 st.write("👋 Hello! How can I help you today?")
 
 # Session state initialization
@@ -198,4 +198,5 @@ elif st.session_state.step == "result":
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+
 
