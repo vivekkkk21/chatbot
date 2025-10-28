@@ -20,7 +20,7 @@ def load_lottieurl(url):
     return r.json()
 
 # Load a waving robot animation (you can replace this URL with any Lottie animation)
-robot_animation = load_lottieurl("https://lottiefiles.com/free-animation/robotsaludando-ZnoACNm8G9.json")
+robot_animation = load_lottieurl("https://lottiefiles.com/free-animation/robotsaludando-ZnoACNm8G9")
 
 # Show animation for 2 seconds before displaying title
 with st.spinner("Starting assistant..."):
@@ -219,6 +219,7 @@ elif st.session_state.step == "result":
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+
 
 
 
