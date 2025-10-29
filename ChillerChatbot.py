@@ -183,6 +183,10 @@ elif st.session_state.step == "review_table":
             st.rerun()
 
 elif st.session_state.step == "result":
+    import os
+    import pandas as pd
+
+    # --- Calculations ---
     dims_m = {k: convert_length(v, st.session_state.unit) for k, v in st.session_state.dimensions.items()}
     area_m2 = calc_area(st.session_state.shape, dims_m)
     vels_m = [convert_velocity(v, st.session_state.vel_unit) for v in st.session_state.velocities]
@@ -192,12 +196,13 @@ elif st.session_state.step == "result":
     flow_m3min = flow_m3s * 60
     flow_m3hr = flow_m3s * 3600
 
+    # --- Display results ---
     st.success(f"""
     ✅ **Calculation Complete!**
 
-    - Equipment: {st.session_state.equipment}  
+    - *Equipment:* {st.session_state.equipment}  
     - Shape: {st.session_state.shape}  
-    - Surface area: {area_m2:.3f} m²/s
+    - Surface Area: {area_m2:.3f} m²  
     - Average Velocity: {avg_m:.3f} m/s  
     - Air Flow Rate:  
         • {flow_m3s:.4f} m³/s  
@@ -205,10 +210,36 @@ elif st.session_state.step == "result":
         • {flow_m3hr:.4f} m³/hr
     """)
 
+    # --- Save results to Excel ---
+    record = {
+        "Equipment": st.session_state.equipment,
+        "Shape": st.session_state.shape,
+        "Measurement Unit": st.session_state.unit,
+        "Area (m²)": round(area_m2, 4),
+        "Average Velocity (m/s)": round(avg_m, 4),
+        "Flow (m³/s)": round(flow_m3s, 4),
+        "Flow (m³/min)": round(flow_m3min, 4),
+        "Flow (m³/hr)": round(flow_m3hr, 4),
+    }
+
+    file_name = "airflow_records.xlsx"
+
+    # Append or create
+    if os.path.exists(file_name):
+        existing_df = pd.read_excel(file_name)
+        updated_df = pd.concat([existing_df, pd.DataFrame([record])], ignore_index=True)
+    else:
+        updated_df = pd.DataFrame([record])
+
+    updated_df.to_excel(file_name, index=False)
+    st.info(f"📁 Results have been saved to `{file_name}` successfully!")
+
+    # --- Restart ---
     if st.button("🔄 Start New Calculation"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+
 
 
 
