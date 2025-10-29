@@ -195,7 +195,7 @@ elif st.session_state.step == "result":
     st.success(f"""
     ✅ **Calculation Complete!**
 
-    - *Equipment:* {st.session_state.equipment}  
+    - Equipment: {st.session_state.equipment}  
     - Shape: {st.session_state.shape}  
     - Surface area: {area_m2:.3f} m²/s
     - Average Velocity: {avg_m:.3f} m/s  
@@ -209,6 +209,7 @@ elif st.session_state.step == "result":
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+
 
 
 
