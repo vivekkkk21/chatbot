@@ -188,19 +188,28 @@ elif st.session_state.step == "result":
     vels_m = [convert_velocity(v, st.session_state.vel_unit) for v in st.session_state.velocities]
     avg_m, flow_m3s = calc_flow(vels_m, area_m2)
 
+    # Convert flow to m³/min and m³/hr
+    flow_m3min = flow_m3s * 60
+    flow_m3hr = flow_m3s * 3600
+
     st.success(f"""
     ✅ **Calculation Complete!**
 
     - Equipment: {st.session_state.equipment}  
     - Shape: {st.session_state.shape}  
     - Average Velocity: {avg_m:.3f} m/s  
-    - Air Flow Rate: {flow_m3s:.4f} m³/s
+    - Air Flow Rate:  
+        • {flow_m3s:.4f} m³/s  
+        • {flow_m3min:.4f} m³/min  
+        • {flow_m3hr:.4f} m³/hr
     """)
 
     if st.button("🔄 Start New Calculation"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+
+
 
 
 
