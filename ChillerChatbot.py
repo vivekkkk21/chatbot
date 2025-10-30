@@ -183,8 +183,8 @@ elif st.session_state.step == "review_table":
             st.rerun()
 
 elif st.session_state.step == "result":
-    import os
-    import pandas as pd
+    #import os
+    #import pandas as pd
 
     # --- Calculations ---
     dims_m = {k: convert_length(v, st.session_state.unit) for k, v in st.session_state.dimensions.items()}
@@ -210,7 +210,7 @@ elif st.session_state.step == "result":
         • {flow_m3hr:.4f} m³/hr
     """)
 
-    # --- Save results to Excel ---
+    '''# --- Save results to Excel ---
     record = {
         "Equipment": st.session_state.equipment,
         "Shape": st.session_state.shape,
@@ -232,13 +232,14 @@ elif st.session_state.step == "result":
         updated_df = pd.DataFrame([record])
 
     updated_df.to_excel(file_name, index=False)
-    st.info(f"📁 Results have been saved to `{file_name}` successfully!")
+    st.info(f"📁 Results have been saved to `{file_name}` successfully!")'''
 
     # --- Restart ---
     if st.button("🔄 Start New Calculation"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+
 
 
 
