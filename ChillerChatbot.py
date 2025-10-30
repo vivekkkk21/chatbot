@@ -240,11 +240,7 @@ elif st.session_state.step == "result":
     updated_df.to_excel(file_name, index=False)
     st.info(f"📁 Results have been saved to `{file_name}` successfully!")
 """
-    # --- Restart ---
-    if st.button("🔄 Start New Calculation"):
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.rerun()
+
 
 
 
