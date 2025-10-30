@@ -209,6 +209,12 @@ elif st.session_state.step == "result":
         • {flow_m3min:.4f} m³/min  
         • {flow_m3hr:.4f} m³/hr
     """)
+    
+    # --- Restart ---
+    if st.button("🔄 Start New Calculation"):
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.rerun()
 """
     '''# --- Save results to Excel ---
     record = {
@@ -239,6 +245,7 @@ elif st.session_state.step == "result":
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
+
 
 
 
