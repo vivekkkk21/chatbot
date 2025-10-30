@@ -215,31 +215,8 @@ elif st.session_state.step == "result":
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
-"""
-    '''# --- Save results to Excel ---
-    record = {
-        "Equipment": st.session_state.equipment,
-        "Shape": st.session_state.shape,
-        "Measurement Unit": st.session_state.unit,
-        "Area (m²)": round(area_m2, 4),
-        "Average Velocity (m/s)": round(avg_m, 4),
-        "Flow (m³/s)": round(flow_m3s, 4),
-        "Flow (m³/min)": round(flow_m3min, 4),
-        "Flow (m³/hr)": round(flow_m3hr, 4),
-    }
 
-    file_name = "airflow_records.xlsx"
 
-    # Append or create
-    if os.path.exists(file_name):
-        existing_df = pd.read_excel(file_name)
-        updated_df = pd.concat([existing_df, pd.DataFrame([record])], ignore_index=True)
-    else:
-        updated_df = pd.DataFrame([record])
-
-    updated_df.to_excel(file_name, index=False)
-    st.info(f"📁 Results have been saved to `{file_name}` successfully!")
-"""
 
 
 
