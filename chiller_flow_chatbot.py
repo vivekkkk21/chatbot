@@ -191,18 +191,25 @@ elif st.session_state.step == "review_table":
             st.rerun()
 
 elif st.session_state.step == "result":
+    import os
+    import pandas as pd
+
+    path = r"C:\Users\tsvaevq\OneDrive - Volkswagen AG\SmartChillerChatbotExcel.xlsx"
+
     # --- Calculations ---
     dims_m = {k: convert_length(v, st.session_state.unit) for k, v in st.session_state.dimensions.items()}
     area_m2 = calc_area(st.session_state.shape, dims_m)
     vels_m = [convert_velocity(v, st.session_state.vel_unit) for v in st.session_state.velocities]
     avg_m, flow_m3s = calc_flow(vels_m, area_m2)
 
+    # Convert flow to m³/min and m³/hr
     flow_m3min = flow_m3s * 60
     flow_m3hr = flow_m3s * 3600
 
-    # --- Display Results ---
+    # --- Display results ---
     st.success(f"""
     ✅ **Calculation Complete!**
+
     - *Equipment:* {st.session_state.equipment}  
     - Shape: {st.session_state.shape}  
     - Surface Area: {area_m2:.3f} m²  
@@ -213,20 +220,26 @@ elif st.session_state.step == "result":
         • {flow_m3hr:.4f} m³/hr
     """)
 
-    # --- Save Results to Excel ---
-    result_data = {
-        "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    # --- Save results to Excel ---
+    new_data = pd.DataFrame([{
         "Equipment": st.session_state.equipment,
         "Shape": st.session_state.shape,
-        "Surface_Area_m2": area_m2,
-        "Avg_Velocity_m/s": avg_m,
-        "Flow_m3/s": flow_m3s,
-        "Flow_m3/min": flow_m3min,
-        "Flow_m3/hr": flow_m3hr,
-        "Velocities": ", ".join(map(str, st.session_state.velocities))
-    }
-    append_to_excel(result_data)
-    st.success("📊 Result saved to OneDrive Excel successfully!")
+        "Surface Area (m²)": round(area_m2, 4),
+        "Average Velocity (m/s)": round(avg_m, 4),
+        "Flow (m³/s)": round(flow_m3s, 4),
+        "Flow (m³/min)": round(flow_m3min, 4),
+        "Flow (m³/hr)": round(flow_m3hr, 4)
+    }])
+
+    # Check if Excel exists and append or create
+    if os.path.exists(path):
+        existing = pd.read_excel(path)
+        updated = pd.concat([existing, new_data], ignore_index=True)
+        updated.to_excel(path, index=False)
+    else:
+        new_data.to_excel(path, index=False)
+
+    st.info("📊 Result successfully saved to Excel!")
 
     # --- Restart ---
     if st.button("🔄 Start New Calculation"):
