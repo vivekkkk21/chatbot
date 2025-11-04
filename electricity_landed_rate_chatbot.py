@@ -18,7 +18,7 @@ DEFAULT_CONSTANTS = {
 # -----------------------------
 # Embedded tariff keys (for dropdown)
 # -----------------------------
-TARIFF_KEYS = ["April 2025", "June 2025"]
+TARIFF_KEYS = ["April 2025", "June 2025", "July 2025", "August 2025", "September 2025"]
 
 # -----------------------------
 # Page config + title
@@ -217,3 +217,4 @@ with left_col:
 # Footer / help
 st.markdown("---")
 st.caption("Made for MSEDCL MYT style landed unit rate calculations. ToD multipliers are interpreted as percentage adjustments to the energy rate for that slab (e.g., -1.5 → -1.5%). Constants reset to defaults on page reload.")
+
