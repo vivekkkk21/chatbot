@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from typing import List, Tuple
 
 # -----------------------------
 # Default Constants (reset on reload)
@@ -19,6 +20,18 @@ DEFAULT_CONSTANTS = {
 # Embedded tariff keys (for dropdown)
 # -----------------------------
 TARIFF_KEYS = ["April 2025", "June 2025", "July 2025", "August 2025", "September 2025"]
+
+# -----------------------------
+# Fixed Old ToD Ratios & Old slab timings (from Excel)
+# -----------------------------
+OLD_TOD_RATIOS = {"A": 34.0, "B": 34.0, "C": 7.0, "D": 25.0}
+# Old slab timings - note B has two ranges
+OLD_SLAB_TIMINGS = {
+    "A": [("22:00", "06:00")],                # wrap-around
+    "B": [("06:00", "09:00"), ("12:00", "18:00")],  # two ranges
+    "C": [("09:00", "12:00")],
+    "D": [("18:00", "22:00")],
+}
 
 # -----------------------------
 # Page config + title
@@ -87,6 +100,48 @@ with right_col:
     )
 
 # -----------------------------
+# Helper functions for time parsing and overlap
+# -----------------------------
+def parse_time(t: str) -> float:
+    """Parse 'HH:MM' -> hour float (0-24)."""
+    hh, mm = t.split(":")
+    return int(hh) + int(mm) / 60.0
+
+def parse_range(r: str) -> Tuple[float, float]:
+    """Parse 'HH:MM-HH:MM' -> (start_hour, end_hour)."""
+    a, b = r.split("-")
+    return parse_time(a.strip()), parse_time(b.strip())
+
+def split_range_if_wrap(start: float, end: float) -> List[Tuple[float, float]]:
+    """
+    If range wraps (start >= end), split into two segments: [start,24) and [0,end).
+    Otherwise return single segment list.
+    """
+    if start < end:
+        return [(start, end)]
+    else:
+        # wrap-around
+        return [(start, 24.0), (0.0, end)]
+
+def overlap_between_segments(seg1: Tuple[float, float], seg2: Tuple[float, float]) -> float:
+    """Return overlap hours between two non-wrapping segments (start,end)."""
+    s1, e1 = seg1
+    s2, e2 = seg2
+    start = max(s1, s2)
+    end = min(e1, e2)
+    return max(0.0, end - start)
+
+def total_overlap_hours(range1: Tuple[float, float], range2: Tuple[float, float]) -> float:
+    """Handle wrap-around by splitting ranges and summing overlap."""
+    segs1 = split_range_if_wrap(*range1)
+    segs2 = split_range_if_wrap(*range2)
+    total = 0.0
+    for a in segs1:
+        for b in segs2:
+            total += overlap_between_segments(a, b)
+    return total
+
+# -----------------------------
 # Left column: Inputs & calculation
 # -----------------------------
 with left_col:
@@ -103,15 +158,25 @@ with left_col:
     st.header("2️⃣ Time-of-Day (ToD) Slab Ratios (percent of total kVAh)")
     rcol1, rcol2 = st.columns(2)
     with rcol1:
-        slab_A = st.number_input("Slab A (%) [22:00–06:00]", min_value=0.0, max_value=100.0, value=16.0)
-        slab_B = st.number_input("Slab B (%) [06:00–09:00 & 12:00–18:00]", min_value=0.0, max_value=100.0, value=9.0)
+        # These fields exist in your UI; keep them but they will NOT be used in the new-time-slab-based ToD logic.
+        slab_A = st.number_input("Slab A (%) [22:00–06:00] (UI field retained)", min_value=0.0, max_value=100.0, value=16.0)
+        slab_B = st.number_input("Slab B (%) [06:00–09:00 & 12:00–18:00] (UI field retained)", min_value=0.0, max_value=100.0, value=9.0)
     with rcol2:
-        slab_C = st.number_input("Slab C (%) [09:00–12:00]", min_value=0.0, max_value=100.0, value=34.0)
-        slab_D = st.number_input("Slab D (%) [18:00–22:00]", min_value=0.0, max_value=100.0, value=41.0)
+        slab_C = st.number_input("Slab C (%) [09:00–12:00] (UI field retained)", min_value=0.0, max_value=100.0, value=34.0)
+        slab_D = st.number_input("Slab D (%) [18:00–22:00] (UI field retained)", min_value=0.0, max_value=100.0, value=41.0)
 
     total_ratio = slab_A + slab_B + slab_C + slab_D
     if total_ratio != 100:
         st.warning("⚠️ The slab ratios should add up to 100%. Current total: {:.2f}%".format(total_ratio))
+
+    st.markdown("---")
+    # New: editable New Slab Timings (these determine the new distribution)
+    with st.expander("🔁 Edit New Slab Timings (affects ToD calculation) — default editable"):
+        st.markdown("Enter time ranges in `HH:MM-HH:MM` 24-hour format. Examples: `00:00-06:00`, `06:00-09:00`.")
+        new_A_range = st.text_input("New Slab A time range", value="00:00-06:00", help="e.g., 00:00-06:00")
+        new_B_range = st.text_input("New Slab B time range", value="06:00-09:00", help="e.g., 06:00-09:00")
+        new_C_range = st.text_input("New Slab C time range", value="09:00-18:00", help="e.g., 09:00-18:00")
+        new_D_range = st.text_input("New Slab D time range", value="18:00-22:00", help="e.g., 18:00-22:00")
 
     st.markdown("---")
     st.header("3️⃣ ToD Multipliers")
@@ -157,18 +222,80 @@ with left_col:
             # --- 2. Base Energy Charge (EC) ---
             EC = units_kvah * new_energy_rate
 
-            # --- 3. ToD charge calculation ---
-            A_units = units_kvah * (slab_A / 100.0)
-            B_units = units_kvah * (slab_B / 100.0)
-            C_units = units_kvah * (slab_C / 100.0)
-            D_units = units_kvah * (slab_D / 100.0)
+            # --- 3. ToD charge calculation USING TIME-OVERLAP LOGIC ---
+            # Step 1: Old ToD Units (fixed old ratios)
+            OldUnits = {
+                "A": units_kvah * (OLD_TOD_RATIOS["A"] / 100.0),
+                "B": units_kvah * (OLD_TOD_RATIOS["B"] / 100.0),
+                "C": units_kvah * (OLD_TOD_RATIOS["C"] / 100.0),
+                "D": units_kvah * (OLD_TOD_RATIOS["D"] / 100.0),
+            }
 
-            # Interpreting ToD multipliers as percent adjustments relative to energy rate:
-            # ToD contribution in ₹ = (units_in_slab * (multiplier_percentage / 100)) * energy_rate
-            ToD_A = (A_units * (tod_A / 100.0)) * new_energy_rate
-            ToD_B = (B_units * (tod_B / 100.0)) * new_energy_rate
-            ToD_C = (C_units * (tod_C / 100.0)) * new_energy_rate
-            ToD_D = (D_units * (tod_D / 100.0)) * new_energy_rate
+            # Parse new slab ranges safely
+            try:
+                new_ranges = {
+                    "A": parse_range(new_A_range),
+                    "B": parse_range(new_B_range),
+                    "C": parse_range(new_C_range),
+                    "D": parse_range(new_D_range),
+                }
+            except Exception as e:
+                st.error(f"Error parsing new slab time ranges: {e}")
+                new_ranges = {
+                    "A": (0.0, 6.0),
+                    "B": (6.0, 9.0),
+                    "C": (9.0, 18.0),
+                    "D": (18.0, 22.0),
+                }
+
+            # Prepare old slab durations (sum durations if multiple segments)
+            old_durations = {}
+            for k, segments in OLD_SLAB_TIMINGS.items():
+                dur = 0.0
+                for seg in segments:
+                    s, e = parse_range(f"{seg[0]}-{seg[1]}")
+                    # compute length respecting wrap
+                    seg_len = 0.0
+                    if s < e:
+                        seg_len = e - s
+                    else:
+                        seg_len = (24.0 - s) + e
+                    dur += seg_len
+                old_durations[k] = dur
+
+            # For each new slab, compute NewUnits by summing contributions from each old slab,
+            # proportional to the overlap hours / old_slab_duration
+            NewUnits = {"A": 0.0, "B": 0.0, "C": 0.0, "D": 0.0}
+
+            # Iterate old slabs and their segments
+            for old_k, segments in OLD_SLAB_TIMINGS.items():
+                # total old slab duration
+                old_total_duration = old_durations[old_k]
+                # For each segment in old slab (e.g., B has two segments)
+                for seg in segments:
+                    seg_start, seg_end = parse_range(f"{seg[0]}-{seg[1]}")
+                    # For each new slab, compute overlap hours with this old segment
+                    for new_k, new_range in new_ranges.items():
+                        overlap = total_overlap_hours((seg_start, seg_end), new_range)
+                        if old_total_duration > 0 and overlap > 0:
+                            # fraction of this old-segment that overlaps the new slab
+                            frac = overlap / old_total_duration
+                            # contribution to new slab units comes from entire old slab units,
+                            # distributed proportionally across segments (by fraction of overlap / old_total_duration)
+                            # We need to scale by segment's part in old_total_duration:
+                            # But here we already using overlap / old_total_duration which sums appropriately across segments.
+                            NewUnits[new_k] += OldUnits[old_k] * (overlap / old_total_duration)
+
+            # rounding tiny numerical noise
+            for k in NewUnits:
+                if abs(NewUnits[k]) < 1e-9:
+                    NewUnits[k] = 0.0
+
+            # Now compute ToD charges using multipliers and energy rate
+            ToD_A = NewUnits["A"] * (tod_A / 100.0) * new_energy_rate
+            ToD_B = NewUnits["B"] * (tod_B / 100.0) * new_energy_rate
+            ToD_C = NewUnits["C"] * (tod_C / 100.0) * new_energy_rate
+            ToD_D = NewUnits["D"] * (tod_D / 100.0) * new_energy_rate
             ToD_charge = ToD_A + ToD_B + ToD_C + ToD_D
 
             # --- 4. Other charges ---
@@ -178,7 +305,7 @@ with left_col:
 
             # --- 5. Total and landed rate ---
             Total = DC + EC + ToD_charge + FAC + ED + ToS
-            LandedRate = Total / units_kvah
+            LandedRate = Total / units_kvah if units_kvah > 0 else 0.0
 
             # Display output (main summary)
             st.success("✅ Calculation complete")
@@ -194,10 +321,19 @@ with left_col:
                 st.write("---")
                 st.write(f"**Demand Charge (DC):** ₹ {DC:,.2f}  (DC_rate = ₹{DC_rate:.2f} per kVA)")
                 st.write(f"**Energy Charge (EC):** ₹ {EC:,.2f}  (Energy rate = ₹{new_energy_rate:.4f} per kVAh)")
-                st.write(f"**ToD Charge (A):** ₹ {ToD_A:,.2f} (A_units = {A_units:,.2f}, A_mult = {tod_A}%)")
-                st.write(f"**ToD Charge (B):** ₹ {ToD_B:,.2f} (B_units = {B_units:,.2f}, B_mult = {tod_B}%)")
-                st.write(f"**ToD Charge (C):** ₹ {ToD_C:,.2f} (C_units = {C_units:,.2f}, C_mult = {tod_C}%)")
-                st.write(f"**ToD Charge (D):** ₹ {ToD_D:,.2f} (D_units = {D_units:,.2f}, D_mult = {tod_D}%)")
+                st.write("---")
+                st.subheader("ToD: New slab units & charges (computed from Old ratios & time overlaps)")
+                tod_table = pd.DataFrame({
+                    "New Slab": ["A", "B", "C", "D"],
+                    "New Time Range": [new_A_range, new_B_range, new_C_range, new_D_range],
+                    "New Units (kVAh)": [NewUnits["A"], NewUnits["B"], NewUnits["C"], NewUnits["D"]],
+                    "Multiplier (%)": [tod_A, tod_B, tod_C, tod_D],
+                    "ToD Charge (₹)": [ToD_A, ToD_B, ToD_C, ToD_D],
+                })
+                tod_table["New Units (kVAh)"] = tod_table["New Units (kVAh)"].map(lambda x: f"{x:,.2f}")
+                tod_table["ToD Charge (₹)"] = tod_table["ToD Charge (₹)"].map(lambda x: f"{x:,.2f}")
+                st.table(tod_table)
+
                 st.write(f"**Total ToD charge:** ₹ {ToD_charge:,.2f}")
                 st.write(f"**Fuel Adjustment (FAC):** ₹ {FAC:,.2f} (FAC_rate = ₹{FAC_rate:.4f} per kVAh)")
                 st.write(f"**Electricity Duty (ED):** ₹ {ED:,.2f} (ED_percent = {ED_percent}%)")
@@ -216,6 +352,9 @@ with left_col:
 
 # Footer / help
 st.markdown("---")
-st.caption("Made for MSEDCL MYT style landed unit rate calculations. ToD multipliers are interpreted as percentage adjustments to the energy rate for that slab (e.g., -1.5 → -1.5%). Constants reset to defaults on page reload.")
-
-
+st.caption(
+    "Made for MSEDCL MYT style landed unit rate calculations. ToD multipliers are interpreted "
+    "as percentage adjustments to the energy rate for that slab (e.g., -1.5 → -1.5%). "
+    "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
+    "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
+)
