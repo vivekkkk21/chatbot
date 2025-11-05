@@ -12,7 +12,7 @@ DEFAULT_CONSTANTS = {
         "Tax on Sale rate (₹ per kWh)",
         "Electricity Duty (percentage %)"
     ],
-    "Value": [555.0, 0.0, 0.18, 7.5],
+    "Value": [600.0, 0.5, 0.18, 7.5],
 }
 
 # -----------------------------
@@ -217,4 +217,5 @@ with left_col:
 # Footer / help
 st.markdown("---")
 st.caption("Made for MSEDCL MYT style landed unit rate calculations. ToD multipliers are interpreted as percentage adjustments to the energy rate for that slab (e.g., -1.5 → -1.5%). Constants reset to defaults on page reload.")
+
 
