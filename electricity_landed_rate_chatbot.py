@@ -97,17 +97,17 @@ with left_col:
         month_year = st.selectbox("Select Month & Year", options=TARIFF_KEYS)
         units_kvah = st.number_input("Total energy consumption (kVAh)", min_value=0.0, step=100.0, value=500000.0, format="%.2f")
     with col2:
-        max_demand_kva = st.number_input("Maximum demand (kVA)", min_value=0.0, step=1.0, value=1200.0, format="%.2f")
+        max_demand_kva = st.number_input("Maximum demand (kVA)", min_value=0.0, step=100.0, value=13500.0, format="%.2f")
 
     st.markdown("---")
     st.header("2️⃣ Time-of-Day (ToD) Slab Ratios (percent of total kVAh)")
     rcol1, rcol2 = st.columns(2)
     with rcol1:
-        slab_A = st.number_input("Slab A (%) [22:00–06:00]", min_value=0.0, max_value=100.0, value=25.0)
-        slab_B = st.number_input("Slab B (%) [06:00–09:00 & 12:00–18:00]", min_value=0.0, max_value=100.0, value=25.0)
+        slab_A = st.number_input("Slab A (%) [22:00–06:00]", min_value=0.0, max_value=100.0, value=16.0)
+        slab_B = st.number_input("Slab B (%) [06:00–09:00 & 12:00–18:00]", min_value=0.0, max_value=100.0, value=9.0)
     with rcol2:
-        slab_C = st.number_input("Slab C (%) [09:00–12:00]", min_value=0.0, max_value=100.0, value=25.0)
-        slab_D = st.number_input("Slab D (%) [18:00–22:00]", min_value=0.0, max_value=100.0, value=25.0)
+        slab_C = st.number_input("Slab C (%) [09:00–12:00]", min_value=0.0, max_value=100.0, value=34.0)
+        slab_D = st.number_input("Slab D (%) [18:00–22:00]", min_value=0.0, max_value=100.0, value=41.0)
 
     total_ratio = slab_A + slab_B + slab_C + slab_D
     if total_ratio != 100:
@@ -121,15 +121,15 @@ with left_col:
     )
     mcol1, mcol2 = st.columns(2)
     with mcol1:
-        tod_A = st.number_input("ToD Multiplier A (e.g., -1.5)", value=-1.5, format="%.3f")
+        tod_A = st.number_input("ToD Multiplier A (e.g., -1.5)", value=0.0, format="%.3f")
         tod_B = st.number_input("ToD Multiplier B (e.g., 0)", value=0.0, format="%.3f")
     with mcol2:
-        tod_C = st.number_input("ToD Multiplier C (e.g., 0.8)", value=0.8, format="%.3f")
-        tod_D = st.number_input("ToD Multiplier D (e.g., 1.1)", value=1.1, format="%.3f")
+        tod_C = st.number_input("ToD Multiplier C (e.g., 0.8)", value=-2.17, format="%.3f")
+        tod_D = st.number_input("ToD Multiplier D (e.g., 1.1)", value=2.17, format="%.3f")
 
     st.markdown("---")
     st.header("4️⃣ Energy Rate")
-    new_energy_rate = st.number_input("New Energy Rate (₹ per kVAh)", min_value=0.0, step=0.01, value=7.48, format="%.4f")
+    new_energy_rate = st.number_input("New Energy Rate (₹ per kVAh)", min_value=0.0, step=0.01, value=8.68, format="%.4f")
 
     st.markdown("---")
     st.info("When ready, click **Calculate Landed Unit Rate** below.")
@@ -217,5 +217,6 @@ with left_col:
 # Footer / help
 st.markdown("---")
 st.caption("Made for MSEDCL MYT style landed unit rate calculations. ToD multipliers are interpreted as percentage adjustments to the energy rate for that slab (e.g., -1.5 → -1.5%). Constants reset to defaults on page reload.")
+
 
 
