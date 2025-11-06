@@ -333,7 +333,7 @@ with left_col:
 
             promptPaymentDiscount = (DC + EC + FAC + ToD_charge) * (-0.01) 
 
-            LandedRate = (Total + promptPaymentDiscount) / (units_kvah if units_kvah > 0 else 0.0) * 0.997
+            LandedRate = (Total + promptPaymentDiscount) / (units_kvah) * 0.997
 
             # Display output (main summary)
             st.success("✅ Calculation complete")
@@ -386,3 +386,4 @@ st.caption(
     "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
     "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
 )
+
