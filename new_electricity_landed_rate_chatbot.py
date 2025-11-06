@@ -24,7 +24,7 @@ TARIFF_KEYS = ["April 2025", "June 2025", "July 2025", "August 2025", "September
 # -----------------------------
 # Fixed Old ToD Ratios & Old slab timings (from Excel)
 # -----------------------------
-OLD_TOD_RATIOS = {"A": 34.0, "B": 34.0, "C": 7.0, "D": 25.0}
+OLD_TOD_RATIOS = {"A": 33.541412, "B": 34.476496, "C": 6.837052, "D": 25.14506}
 # Old slab timings - note B has two ranges
 OLD_SLAB_TIMINGS = {
     "A": [("22:00", "06:00")],                # wrap-around
@@ -292,10 +292,10 @@ with left_col:
                     NewUnits[k] = 0.0
 
             # Now compute ToD charges using multipliers and energy rate
-            ToD_A = NewUnits["A"] * (tod_A / 100.0) * new_energy_rate
-            ToD_B = NewUnits["B"] * (tod_B / 100.0) * new_energy_rate
-            ToD_C = NewUnits["C"] * (tod_C / 100.0) * new_energy_rate
-            ToD_D = NewUnits["D"] * (tod_D / 100.0) * new_energy_rate
+            ToD_A = NewUnits["A"] * (tod_A / 100.0)             #* new_energy_rate
+            ToD_B = NewUnits["B"] * (tod_B / 100.0)             #* new_energy_rate
+            ToD_C = NewUnits["C"] * (tod_C / 100.0)             #* new_energy_rate
+            ToD_D = NewUnits["D"] * (tod_D / 100.0)             #* new_energy_rate
             ToD_charge = ToD_A + ToD_B + ToD_C + ToD_D
 
             # --- 4. Other charges ---
@@ -366,6 +366,8 @@ with left_col:
                 st.write(f"**Fuel Adjustment (FAC):** ₹ {FAC:,.2f} (FAC_rate = ₹{FAC_rate:.4f} per kVAh)")
                 st.write(f"**Electricity Duty (ED):** ₹ {ED:,.2f} (ED_percent = {ED_percent}%)")
                 st.write(f"**Tax on Sale (ToS):** ₹ {ToS:,.2f} (ToS_rate = ₹{ToS_rate} per kWh)")
+                st.write(f"**Bulk Consumption Rebate (BCK):** ₹ {BCK:,.2f} **Excluding first 1Lac, 7% for 9Lac Units; 9% for other 40Lac units; 11% for units exclusing beyond 50Lac**")
+                st.write(f"**Incremental Consumption rebate (ICR):** ₹ {ICR:,.2f} **INR 7.5%/kWAh for units above average **")
                 st.write("---")
                 st.write(f"**Total bill (₹):** {Total:,.2f}")
                 st.write(f"**Landed Unit Rate (₹ / kWh):** {LandedRate:,.4f}")
@@ -386,4 +388,5 @@ st.caption(
     "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
     "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
 )
+
 
