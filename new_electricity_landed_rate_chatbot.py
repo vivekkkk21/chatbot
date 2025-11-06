@@ -366,7 +366,7 @@ with left_col:
                 st.write(f"**Fuel Adjustment (FAC):** ₹ {FAC:,.2f} (FAC_rate = ₹{FAC_rate:.4f} per kVAh)")
                 st.write(f"**Electricity Duty (ED):** ₹ {ED:,.2f} (ED_percent = {ED_percent}%)")
                 st.write(f"**Tax on Sale (ToS):** ₹ {ToS:,.2f} (ToS_rate = ₹{ToS_rate} per kWh)")
-                st.write(f"**Bulk Consumption Rebate (BCK):** ₹ {BCK:,.2f} **Excluding first 1Lac, 7% for 9Lac Units; 9% for other 40Lac units; 11% for units exclusing beyond 50Lac**")
+                st.write(f"**Bulk Consumption Rebate (BCR):** ₹ {BCR:,.2f} **Excluding first 1Lac, 7% for 9Lac Units; 9% for other 40Lac units; 11% for units exclusing beyond 50Lac**")
                 st.write(f"**Incremental Consumption rebate (ICR):** ₹ {ICR:,.2f} **INR 7.5%/kWAh for units above average **")
                 st.write("---")
                 st.write(f"**Total bill (₹):** {Total:,.2f}")
@@ -388,5 +388,6 @@ st.caption(
     "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
     "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
 )
+
 
 
