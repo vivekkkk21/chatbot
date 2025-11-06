@@ -159,11 +159,11 @@ with left_col:
     rcol1, rcol2 = st.columns(2)
     with rcol1:
         # These fields exist in your UI; keep them but they will NOT be used in the new-time-slab-based ToD logic.
-        slab_A = st.number_input("Slab A (%) [22:00–06:00] (UI field retained)", min_value=0.0, max_value=100.0, value=16.0)
-        slab_B = st.number_input("Slab B (%) [06:00–09:00 & 12:00–18:00] (UI field retained)", min_value=0.0, max_value=100.0, value=9.0)
+        slab_A = st.number_input("Slab A (%) [22:00–06:00] (UI field retained)", min_value=0.0, max_value=100.0, value=34.0)
+        slab_B = st.number_input("Slab B (%) [06:00–09:00 & 12:00–18:00] (UI field retained)", min_value=0.0, max_value=100.0, value=34.0)
     with rcol2:
-        slab_C = st.number_input("Slab C (%) [09:00–12:00] (UI field retained)", min_value=0.0, max_value=100.0, value=34.0)
-        slab_D = st.number_input("Slab D (%) [18:00–22:00] (UI field retained)", min_value=0.0, max_value=100.0, value=41.0)
+        slab_C = st.number_input("Slab C (%) [09:00–12:00] (UI field retained)", min_value=0.0, max_value=100.0, value=7.0)
+        slab_D = st.number_input("Slab D (%) [18:00–22:00] (UI field retained)", min_value=0.0, max_value=100.0, value=25.0)
 
     total_ratio = slab_A + slab_B + slab_C + slab_D
     if total_ratio != 100:
@@ -175,8 +175,8 @@ with left_col:
         st.markdown("Enter time ranges in `HH:MM-HH:MM` 24-hour format. Examples: `00:00-06:00`, `06:00-09:00`.")
         new_A_range = st.text_input("New Slab A time range", value="00:00-06:00", help="e.g., 00:00-06:00")
         new_B_range = st.text_input("New Slab B time range", value="06:00-09:00", help="e.g., 06:00-09:00")
-        new_C_range = st.text_input("New Slab C time range", value="09:00-18:00", help="e.g., 09:00-18:00")
-        new_D_range = st.text_input("New Slab D time range", value="18:00-22:00", help="e.g., 18:00-22:00")
+        new_C_range = st.text_input("New Slab C time range", value="09:00-17:00", help="e.g., 09:00-18:00")
+        new_D_range = st.text_input("New Slab D time range", value="17:00-00:00", help="e.g., 18:00-22:00")
 
     st.markdown("---")
     st.header("3️⃣ ToD Multipliers")
@@ -217,10 +217,10 @@ with left_col:
             # DC_rate, FAC_rate, ToS_rate, ED_percent already extracted
 
             # --- 1. Demand Charge ---
-            DC = max_demand_kva * DC_rate
+            DC = max_demand_kva * DC_rate                   #Correct
 
             # --- 2. Base Energy Charge (EC) ---
-            EC = units_kvah * new_energy_rate
+            EC = units_kvah * new_energy_rate               #Correct
 
             # --- 3. ToD charge calculation USING TIME-OVERLAP LOGIC ---
             # Step 1: Old ToD Units (fixed old ratios)
@@ -244,8 +244,8 @@ with left_col:
                 new_ranges = {
                     "A": (0.0, 6.0),
                     "B": (6.0, 9.0),
-                    "C": (9.0, 18.0),
-                    "D": (18.0, 22.0),
+                    "C": (9.0, 17.0),
+                    "D": (17.0, 0.0),
                 }
 
             # Prepare old slab durations (sum durations if multiple segments)
@@ -301,11 +301,39 @@ with left_col:
             # --- 4. Other charges ---
             FAC = units_kvah * FAC_rate
             ED = (ED_percent / 100.0) * (DC + EC + FAC + ToD_charge)
-            ToS = units_kvah * ToS_rate
+            ToS = (units_kvah*0.997) * ToS_rate
+
+            kWh = units_kvah*0.
+            
+            #Incremental Consumption Rebate
+            ICR = ((kWh - 4044267) * (-0.75))
+
+            #BCR Bulk Consumption Rebate
+            def calculate_bulk_consumption_rebate(units: float) -> float:
+                """
+                Bulk Consumption Rebate (BCR) logic:
+                - ₹0.07 for first 9,00,000 units
+                - ₹0.09 for next 40,00,000 units (from 9,00,001 to 49,99,999)
+                - ₹0.11 for units beyond 50,00,000
+                """
+                rebate = 0.0
+                if units_kvah <= 900000:
+                    rebate = units_kvah * 0.07
+                elif units_kvah <= 5000000:
+                    rebate = (900000 * 0.07) + ((units_kvah - 900000) * 0.09)
+                else:
+                    rebate = (900000 * 0.07) + (4100000 * 0.09) + ((units_kvah - 5000000) * 0.11)
+                return rebate
+            
+            BCR = calculate_bulk_consumption_rebate(units_kvah)
+
 
             # --- 5. Total and landed rate ---
-            Total = DC + EC + ToD_charge + FAC + ED + ToS
-            LandedRate = Total / units_kvah if units_kvah > 0 else 0.0
+            Total = DC + EC + ToD_charge + FAC + ED + ToS + BCR + ICR
+
+            promptPaymentDiscount = (DC + EC + FAC + ToD_charge) * (-0.01) 
+
+            LandedRate = (Total + promptPaymentDiscount) / (units_kvah if units_kvah > 0 else 0.0) * 0.997
 
             # Display output (main summary)
             st.success("✅ Calculation complete")
