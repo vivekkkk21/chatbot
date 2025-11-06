@@ -186,11 +186,11 @@ with left_col:
     )
     mcol1, mcol2 = st.columns(2)
     with mcol1:
-        tod_A = st.number_input("ToD Multiplier A (e.g., -1.5)", value=0.0, format="%.3f")
-        tod_B = st.number_input("ToD Multiplier B (e.g., 0)", value=0.0, format="%.3f")
+        tod_A = st.number_input("ToD Multiplier A (e.g., -1.5)", value=0.0, format="%.2f")
+        tod_B = st.number_input("ToD Multiplier B (e.g., 0)", value=0.0, format="%.2f")
     with mcol2:
-        tod_C = st.number_input("ToD Multiplier C (e.g., 0.8)", value=-2.17, format="%.3f")
-        tod_D = st.number_input("ToD Multiplier D (e.g., 1.1)", value=2.17, format="%.3f")
+        tod_C = st.number_input("ToD Multiplier C (e.g., 0.8)", value=-2.17, format="%.2f")
+        tod_D = st.number_input("ToD Multiplier D (e.g., 1.1)", value=2.17, format="%.2f")
 
     st.markdown("---")
     st.header("4️⃣ Energy Rate")
@@ -292,10 +292,10 @@ with left_col:
                     NewUnits[k] = 0.0
 
             # Now compute ToD charges using multipliers and energy rate
-            ToD_A = NewUnits["A"] * (tod_A / 100.0)             #* new_energy_rate
-            ToD_B = NewUnits["B"] * (tod_B / 100.0)             #* new_energy_rate
-            ToD_C = NewUnits["C"] * (tod_C / 100.0)             #* new_energy_rate
-            ToD_D = NewUnits["D"] * (tod_D / 100.0)             #* new_energy_rate
+            ToD_A = NewUnits["A"] * (tod_A )             
+            ToD_B = NewUnits["B"] * (tod_B )             
+            ToD_C = NewUnits["C"] * (tod_C )             
+            ToD_D = NewUnits["D"] * (tod_D )            
             ToD_charge = ToD_A + ToD_B + ToD_C + ToD_D
 
             # --- 4. Other charges ---
@@ -388,6 +388,7 @@ st.caption(
     "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
     "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
 )
+
 
 
 
