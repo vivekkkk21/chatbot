@@ -333,7 +333,7 @@ with left_col:
 
             promptPaymentDiscount = (DC + EC + FAC + ToD_charge) * (-0.01) 
 
-            LandedRate = (Total + promptPaymentDiscount) / (units_kvah) * 0.997
+            LandedRate = (Total + promptPaymentDiscount) /  kWh
 
             # Display output (main summary)
             st.success("✅ Calculation complete")
@@ -367,7 +367,7 @@ with left_col:
                 st.write(f"**Electricity Duty (ED):** ₹ {ED:,.2f} (ED_percent = {ED_percent}%)")
                 st.write(f"**Tax on Sale (ToS):** ₹ {ToS:,.2f} (ToS_rate = ₹{ToS_rate} per kWh)")
                 st.write(f"**Bulk Consumption Rebate (BCR):** ₹ {BCR:,.2f}")
-                st.write(f"**Excluding first 1Lac, 7% for 9Lac Units; 9% for other 40Lac units; 11% for units exclusing beyond 50Lac**")
+                st.write(f"**(Excluding first 1Lac, 7% for 9Lac Units; 9% for other 40Lac units; 11% for units exclusing beyond 50Lac)**")
                 st.write(f"**Incremental Consumption rebate (ICR):** ₹ {ICR:,.2f} **INR 7.5%/kWAh for units above average **")
                 st.write(f"**Prompt Payment Discount:** ₹ {promptPaymentDiscount:,.2f} ")
                 st.write("---")
@@ -390,6 +390,7 @@ st.caption(
     "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
     "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
 )
+
 
 
 
