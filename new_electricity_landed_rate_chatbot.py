@@ -159,11 +159,11 @@ with left_col:
     rcol1, rcol2 = st.columns(2)
     with rcol1:
         # These fields exist in your UI; keep them but they will NOT be used in the new-time-slab-based ToD logic.
-        slab_A = st.number_input("Slab A (%) [22:00–06:00] (UI field retained)", min_value=0.0, max_value=100.0, value=34.0)
-        slab_B = st.number_input("Slab B (%) [06:00–09:00 & 12:00–18:00] (UI field retained)", min_value=0.0, max_value=100.0, value=34.0)
+        slab_A = st.number_input("Slab A (%) [22:00–06:00] (UI field retained)", min_value=0.0, max_value=100.0, value=16.0)
+        slab_B = st.number_input("Slab B (%) [06:00–09:00 & 12:00–18:00] (UI field retained)", min_value=0.0, max_value=100.0, value=9.0)
     with rcol2:
-        slab_C = st.number_input("Slab C (%) [09:00–12:00] (UI field retained)", min_value=0.0, max_value=100.0, value=7.0)
-        slab_D = st.number_input("Slab D (%) [18:00–22:00] (UI field retained)", min_value=0.0, max_value=100.0, value=25.0)
+        slab_C = st.number_input("Slab C (%) [09:00–12:00] (UI field retained)", min_value=0.0, max_value=100.0, value=34.0)
+        slab_D = st.number_input("Slab D (%) [18:00–22:00] (UI field retained)", min_value=0.0, max_value=100.0, value=41.0)
 
     total_ratio = slab_A + slab_B + slab_C + slab_D
     if total_ratio != 100:
@@ -390,6 +390,7 @@ st.caption(
     "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
     "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
 )
+
 
 
 
