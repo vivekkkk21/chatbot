@@ -150,11 +150,12 @@ with left_col:
     col1, col2 = st.columns(2)
     with col1:
         month = st.selectbox("Select Month", options=TARIFF_KEYS)
-        year = st.selectbox("Select Year", options=Years)
+        max_demand_kva = st.number_input("Maximum demand (kVA)", min_value=0.0, step=100.0, value=13500.0, format="%.2f")
         
     with col2:
+        year = st.selectbox("Select Year", options=Years)
         units_kvah = st.number_input("Total energy consumption (kVAh)", min_value=0.0, step=100.0, value=500000.0, format="%.2f")
-        max_demand_kva = st.number_input("Maximum demand (kVA)", min_value=0.0, step=100.0, value=13500.0, format="%.2f")
+        
 
     st.markdown("---")
     st.header("2️⃣ Time-of-Day (ToD) Slab Ratios (percent of total kVAh)")
@@ -392,6 +393,7 @@ st.caption(
     "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
     "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
 )
+
 
 
 
