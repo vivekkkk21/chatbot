@@ -303,7 +303,7 @@ with left_col:
             ED = (ED_percent / 100.0) * (DC + EC + FAC + ToD_charge)
             ToS = (units_kvah*0.997) * ToS_rate
 
-            kWh = units_kvah*0.
+            kWh = units_kvah*0.997
             
             #Incremental Consumption Rebate
             ICR = ((kWh - 4044267) * (-0.75))
@@ -325,7 +325,7 @@ with left_col:
                     rebate = (900000 * 0.07) + (4100000 * 0.09) + ((units_kvah - 5000000) * 0.11)
                 return rebate
             
-            BCR = calculate_bulk_consumption_rebate(units_kvah)
+            BCR = calculate_bulk_consumption_rebate(-units_kvah)
 
 
             # --- 5. Total and landed rate ---
@@ -388,6 +388,7 @@ st.caption(
     "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
     "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
 )
+
 
 
 
