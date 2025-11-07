@@ -19,8 +19,8 @@ DEFAULT_CONSTANTS = {
 # -----------------------------
 # Embedded tariff keys (for dropdown)
 # -----------------------------
-TARIFF_KEYS = ["April 2025", "June 2025", "July 2025", "August 2025", "September 2025"]
-
+TARIFF_KEYS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+Years = ["2020", "2021","2022","2023","2024", "2025","2026", "2027", "2028", "2029", "2030", "2031", "2032", "2033", "2034", "2035", "2036", "2037", "2038", "2039", "2040", "2041", "2042", "2043", "2044", "2045", "2046"]
 # -----------------------------
 # Fixed Old ToD Ratios & Old slab timings (from Excel)
 # -----------------------------
@@ -149,9 +149,11 @@ with left_col:
 
     col1, col2 = st.columns(2)
     with col1:
-        month_year = st.selectbox("Select Month & Year", options=TARIFF_KEYS)
-        units_kvah = st.number_input("Total energy consumption (kVAh)", min_value=0.0, step=100.0, value=500000.0, format="%.2f")
+        month = st.selectbox("Select Month", options=TARIFF_KEYS)
+        year = st.selectbox("Select Year", options=Years)
+        
     with col2:
+        units_kvah = st.number_input("Total energy consumption (kVAh)", min_value=0.0, step=100.0, value=500000.0, format="%.2f")
         max_demand_kva = st.number_input("Maximum demand (kVA)", min_value=0.0, step=100.0, value=13500.0, format="%.2f")
 
     st.markdown("---")
@@ -343,7 +345,7 @@ with left_col:
             # Collapsible detailed breakdown
             with st.expander("Show detailed breakdown"):
                 st.subheader("Detailed cost breakdown")
-                st.write(f"**Month & Year:** {month_year}")
+                st.write(f"**Month & Year:** {month}, {year}")
                 st.write(f"**Total units (kVAh):** {units_kvah:,.2f}")
                 st.write(f"**Maximum demand (kVA):** {max_demand_kva:,.2f}")
                 st.write("---")
@@ -390,6 +392,7 @@ st.caption(
     "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
     "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
 )
+
 
 
 
