@@ -320,12 +320,12 @@ with left_col:
                 if units_kvah <= 900000:
                     rebate = units_kvah * 0.07
                 elif units_kvah <= 5000000:
-                    rebate = (900000 * 0.07) + ((units_kvah - 900000) * 0.09)
+                    rebate = (900000 * 0.07) + ((units_kvah - 1000000) * 0.09)
                 else:
                     rebate = (900000 * 0.07) + (4100000 * 0.09) + ((units_kvah - 5000000) * 0.11)
                 return rebate
             
-            BCR = calculate_bulk_consumption_rebate(-units_kvah)
+            BCR = -calculate_bulk_consumption_rebate(units_kvah)
 
 
             # --- 5. Total and landed rate ---
@@ -366,8 +366,10 @@ with left_col:
                 st.write(f"**Fuel Adjustment (FAC):** ₹ {FAC:,.2f} (FAC_rate = ₹{FAC_rate:.4f} per kVAh)")
                 st.write(f"**Electricity Duty (ED):** ₹ {ED:,.2f} (ED_percent = {ED_percent}%)")
                 st.write(f"**Tax on Sale (ToS):** ₹ {ToS:,.2f} (ToS_rate = ₹{ToS_rate} per kWh)")
-                st.write(f"**Bulk Consumption Rebate (BCR):** ₹ {BCR:,.2f} **Excluding first 1Lac, 7% for 9Lac Units; 9% for other 40Lac units; 11% for units exclusing beyond 50Lac**")
+                st.write(f"**Bulk Consumption Rebate (BCR):** ₹ {BCR:,.2f}")
+                st.write(f"**Excluding first 1Lac, 7% for 9Lac Units; 9% for other 40Lac units; 11% for units exclusing beyond 50Lac**")
                 st.write(f"**Incremental Consumption rebate (ICR):** ₹ {ICR:,.2f} **INR 7.5%/kWAh for units above average **")
+                st.write(f"**Prompt Payment Discount:** ₹ {promptPaymentDiscount:,.2f} ")
                 st.write("---")
                 st.write(f"**Total bill (₹):** {Total:,.2f}")
                 st.write(f"**Landed Unit Rate (₹ / kWh):** {LandedRate:,.4f}")
@@ -388,6 +390,7 @@ st.caption(
     "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
     "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
 )
+
 
 
 
