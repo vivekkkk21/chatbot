@@ -365,6 +365,16 @@ with left_col:
                 tod_table["ToD Charge (₹)"] = tod_table["ToD Charge (₹)"].map(lambda x: f"{x:,.2f}")
                 st.table(tod_table)
 
+                st.markdown("### 💰 Detailed Cost Breakdown")
+                breakdown_df = pd.DataFrame({
+                    "Component": [
+                        "Demand Charge (DC)","Energy Charge (EC)","ToD Charge","Fuel Adj. Charge (FAC)",
+                        "Electricity Duty (ED)","Tax on Sale (ToS)","Total"
+                    ],
+                    "Value (₹)": [DC, EC, ToD_charge, FAC, ED, ToS, Total]
+                })
+                st.table(breakdown_df)
+
                 st.write(f"**Total ToD charge:** ₹ {ToD_charge:,.2f}")
                 st.write(f"**Fuel Adjustment (FAC):** ₹ {FAC:,.2f} (FAC_rate = ₹{FAC_rate:.4f} per kVAh)")
                 st.write(f"**Electricity Duty (ED):** ₹ {ED:,.2f} (ED_percent = {ED_percent}%)")
@@ -393,6 +403,7 @@ st.caption(
     "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
     "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
 )
+
 
 
 
