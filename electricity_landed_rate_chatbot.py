@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
+from typing import List, Tuple
 
 # -----------------------------
-# Default Constants (reset on reload)
+# Default Constants
 # -----------------------------
 DEFAULT_CONSTANTS = {
     "Parameter": ["DC_rate", "FAC_rate", "ToS_rate", "ED_percent"],
@@ -16,207 +17,175 @@ DEFAULT_CONSTANTS = {
 }
 
 # -----------------------------
-# Embedded tariff keys (for dropdown)
+# Embedded tariff keys
 # -----------------------------
-TARIFF_KEYS = ["April 2025", "June 2025", "July 2025", "August 2025", "September 2025"]
+TARIFF_KEYS = ["January","February","March","April","May","June","July","August",
+               "September","October","November","December"]
+Years = [str(y) for y in range(2020, 2047)]
+
+# -----------------------------
+# Fixed Old ToD Ratios & Old slab timings
+# -----------------------------
+OLD_TOD_RATIOS = {"A": 33.541412, "B": 34.476496, "C": 6.837052, "D": 25.14506}
+OLD_SLAB_TIMINGS = {
+    "A": [("22:00", "06:00")],
+    "B": [("06:00", "09:00"), ("12:00", "18:00")],
+    "C": [("09:00", "12:00")],
+    "D": [("18:00", "22:00")],
+}
 
 # -----------------------------
 # Page config + title
 # -----------------------------
-st.set_page_config(
-    page_title="Electricity Landed Unit Rate Calculator",
-    page_icon="⚡",
-    layout="wide",
-)
+st.set_page_config(page_title="Electricity Landed Unit Rate Calculator", page_icon="⚡", layout="wide")
 st.title("⚡ Electricity Landed Unit Rate Calculator")
-st.markdown("### 👋 Hello! Use the form to compute the Landed Unit Rate. Constants on the right are editable and reset on reload.")
+st.markdown("### 👋 Use the form to compute Landed Unit Rate. Constants on the right are editable and reset on reload.")
 
 # -----------------------------
-# Layout: two columns
+# Layout
 # -----------------------------
 left_col, right_col = st.columns([2.2, 1])
 
 # -----------------------------
-# Right column: editable constants table (resets on reload)
+# Editable Constants
 # -----------------------------
 with right_col:
     st.header("🔧 Constants (editable)")
-    st.markdown(
-        "Edit values here for the calculation. These reset to defaults if you reload the page.\n\n"
-        "- **DC_rate** = Demand charge (₹ per kVA)\n"
-        "- **FAC_rate** = Fuel Adjustment Charge (₹ per kVAh)\n"
-        "- **ToS_rate** = Tax on Sale (₹ per kWh)\n"
-        "- **ED_percent** = Electricity Duty (in %)"
-    )
-
     const_df = pd.DataFrame(DEFAULT_CONSTANTS)
-    # Use data_editor for in-place editing if available, otherwise fallback to simple inputs
-    try:
-        edited = st.data_editor(
-            const_df,
-            num_rows="fixed",
-            use_container_width=True,
-            key="constants_editor",
-        )
-    except Exception:
-        # fallback: show inputs individually
-        st.warning("Interactive table not supported; using individual inputs.")
-        edited = const_df.copy()
-        edited.loc[0, "Value"] = st.number_input("DC_rate (₹/kVA)", value=edited.loc[0, "Value"])
-        edited.loc[1, "Value"] = st.number_input("FAC_rate (₹/kVAh)", value=edited.loc[1, "Value"])
-        edited.loc[2, "Value"] = st.number_input("ToS_rate (₹/kWh)", value=edited.loc[2, "Value"])
-        edited.loc[3, "Value"] = st.number_input("ED_percent (%)", value=edited.loc[3, "Value"])
+    edited = st.data_editor(const_df, num_rows="fixed", use_container_width=True, key="constants_editor")
 
-    # Extract constants safely
-    try:
-        DC_rate = float(edited.loc[edited["Parameter"] == "DC_rate", "Value"].values[0])
-        FAC_rate = float(edited.loc[edited["Parameter"] == "FAC_rate", "Value"].values[0])
-        ToS_rate = float(edited.loc[edited["Parameter"] == "ToS_rate", "Value"].values[0])
-        ED_percent = float(edited.loc[edited["Parameter"] == "ED_percent", "Value"].values[0])
-    except Exception:
-        st.error("Error reading constants table — reverting to defaults.")
-        DC_rate, FAC_rate, ToS_rate, ED_percent = DEFAULT_CONSTANTS["Value"]
-
-    st.markdown("---")
-    st.markdown("**Current constants (used in calculations):**")
-    st.write(
-        pd.DataFrame({
-            "Parameter": ["DC_rate (₹/kVA)", "FAC_rate (₹/kVAh)", "ToS_rate (₹/kWh)", "ED_percent (%)"],
-            "Value": [f"{DC_rate}", f"{FAC_rate}", f"{ToS_rate}", f"{ED_percent}"]
-        })
-    )
+    DC_rate = float(edited.loc[0, "Value"])
+    FAC_rate = float(edited.loc[1, "Value"])
+    ToS_rate = float(edited.loc[2, "Value"])
+    ED_percent = float(edited.loc[3, "Value"])
 
 # -----------------------------
-# Left column: Inputs & calculation
+# Helper Functions
+# -----------------------------
+def parse_time(t: str) -> float:
+    hh, mm = t.split(":")
+    return int(hh) + int(mm) / 60.0
+
+def parse_range(r: str) -> Tuple[float, float]:
+    a, b = r.split("-")
+    return parse_time(a.strip()), parse_time(b.strip())
+
+def split_range_if_wrap(start: float, end: float):
+    return [(start, end)] if start < end else [(start, 24.0), (0.0, end)]
+
+def overlap_between_segments(seg1, seg2):
+    s1, e1 = seg1; s2, e2 = seg2
+    start = max(s1, s2); end = min(e1, e2)
+    return max(0.0, end - start)
+
+def total_overlap_hours(range1, range2):
+    segs1 = split_range_if_wrap(*range1)
+    segs2 = split_range_if_wrap(*range2)
+    return sum(overlap_between_segments(a, b) for a in segs1 for b in segs2)
+
+# -----------------------------
+# Left Column
 # -----------------------------
 with left_col:
     st.header("1️⃣ Inputs")
-
     col1, col2 = st.columns(2)
     with col1:
-        month_year = st.selectbox("Select Month & Year", options=TARIFF_KEYS)
-        units_kvah = st.number_input("Total energy consumption (kVAh)", min_value=0.0, step=100.0, value=500000.0, format="%.2f")
+        month = st.selectbox("Select Month", TARIFF_KEYS)
+        max_demand_kva = st.number_input("Maximum demand (kVA)", min_value=0.0, value=13500.0)
     with col2:
-        max_demand_kva = st.number_input("Maximum demand (kVA)", min_value=0.0, step=100.0, value=13500.0, format="%.2f")
+        year = st.selectbox("Select Year", Years)
+        units_kvah = st.number_input("Total energy (kVAh)", min_value=0.0, value=500000.0)
 
     st.markdown("---")
-    st.header("2️⃣ Time-of-Day (ToD) Slab Ratios (percent of total kVAh)")
-    rcol1, rcol2 = st.columns(2)
-    with rcol1:
-        slab_A = st.number_input("Slab A (%) [22:00–06:00]", min_value=0.0, max_value=100.0, value=16.0)
-        slab_B = st.number_input("Slab B (%) [06:00–09:00 & 12:00–18:00]", min_value=0.0, max_value=100.0, value=9.0)
-    with rcol2:
-        slab_C = st.number_input("Slab C (%) [09:00–12:00]", min_value=0.0, max_value=100.0, value=34.0)
-        slab_D = st.number_input("Slab D (%) [18:00–22:00]", min_value=0.0, max_value=100.0, value=41.0)
-
-    total_ratio = slab_A + slab_B + slab_C + slab_D
-    if total_ratio != 100:
-        st.warning("⚠️ The slab ratios should add up to 100%. Current total: {:.2f}%".format(total_ratio))
+    st.header("2️⃣ New Slab Timings")
+    with st.expander("🔁 Edit New Slab Timings"):
+        new_A_range = st.text_input("New Slab A", "00:00-06:00")
+        new_B_range = st.text_input("New Slab B", "06:00-09:00")
+        new_C_range = st.text_input("New Slab C", "09:00-17:00")
+        new_D_range = st.text_input("New Slab D", "17:00-00:00")
 
     st.markdown("---")
-    st.header("3️⃣ ToD Multipliers")
-    st.markdown(
-        "Enter ToD multipliers as percentage adjustments relative to the energy rate.\n"
-        "Example: `-1.5` means -1.5% adjustment for that slab; `1.1` means +1.1%."
-    )
+    st.header("3️⃣ ToD Multipliers (%)")
     mcol1, mcol2 = st.columns(2)
     with mcol1:
-        tod_A = st.number_input("ToD Multiplier A (e.g., -1.5)", value=0.0, format="%.3f")
-        tod_B = st.number_input("ToD Multiplier B (e.g., 0)", value=0.0, format="%.3f")
+        tod_A = st.number_input("Multiplier A", value=0.0)
+        tod_B = st.number_input("Multiplier B", value=0.0)
     with mcol2:
-        tod_C = st.number_input("ToD Multiplier C (e.g., 0.8)", value=-2.17, format="%.3f")
-        tod_D = st.number_input("ToD Multiplier D (e.g., 1.1)", value=2.17, format="%.3f")
+        tod_C = st.number_input("Multiplier C", value=-2.17)
+        tod_D = st.number_input("Multiplier D", value=2.17)
 
     st.markdown("---")
-    st.header("4️⃣ Energy Rate")
-    new_energy_rate = st.number_input("New Energy Rate (₹ per kVAh)", min_value=0.0, step=0.01, value=8.68, format="%.4f")
-
-    st.markdown("---")
-    st.info("When ready, click **Calculate Landed Unit Rate** below.")
-
-    # -----------------------------
-    # Calculation trigger
-    # -----------------------------
+    new_energy_rate = st.number_input("Energy Rate (₹/kVAh)", min_value=0.0, value=8.68)
     calculate = st.button("🚀 Calculate Landed Unit Rate")
 
     if calculate:
-        # Validate
-        if units_kvah <= 0:
-            st.error("Please enter a positive total energy (kVAh).")
-        elif max_demand_kva <= 0:
-            st.error("Please enter a positive maximum demand (kVA).")
-        elif abs(total_ratio - 100.0) > 1e-6:
-            st.error("Slab ratios must add up to 100%. Adjust the percentages and try again.")
-        else:
-            # --- Use constants from right column (editable) ---
-            # DC_rate, FAC_rate, ToS_rate, ED_percent already extracted
+        # Core Calculations
+        DC = max_demand_kva * DC_rate
+        EC = units_kvah * new_energy_rate
+        FAC = units_kvah * FAC_rate
 
-            # --- 1. Demand Charge ---
-            DC = max_demand_kva * DC_rate
+        # Old Units
+        OldUnits = {k: units_kvah * (v / 100.0) for k, v in OLD_TOD_RATIOS.items()}
+        new_ranges = {"A": parse_range(new_A_range), "B": parse_range(new_B_range),
+                      "C": parse_range(new_C_range), "D": parse_range(new_D_range)}
 
-            # --- 2. Base Energy Charge (EC) ---
-            EC = units_kvah * new_energy_rate
+        old_durations = {}
+        for k, segs in OLD_SLAB_TIMINGS.items():
+            dur = 0
+            for s, e in segs:
+                s, e = parse_range(f"{s}-{e}")
+                dur += e - s if s < e else (24 - s) + e
+            old_durations[k] = dur
 
-            # --- 3. ToD charge calculation ---
-            A_units = units_kvah * (slab_A / 100.0)
-            B_units = units_kvah * (slab_B / 100.0)
-            C_units = units_kvah * (slab_C / 100.0)
-            D_units = units_kvah * (slab_D / 100.0)
+        NewUnits = {k: 0 for k in new_ranges}
+        for old_k, segs in OLD_SLAB_TIMINGS.items():
+            old_total = old_durations[old_k]
+            for s, e in segs:
+                s, e = parse_range(f"{s}-{e}")
+                for new_k, nrange in new_ranges.items():
+                    overlap = total_overlap_hours((s, e), nrange)
+                    if overlap > 0 and old_total > 0:
+                        NewUnits[new_k] += OldUnits[old_k] * (overlap / old_total)
 
-            # Interpreting ToD multipliers as percent adjustments relative to energy rate:
-            # ToD contribution in ₹ = (units_in_slab * (multiplier_percentage / 100)) * energy_rate
-            ToD_A = (A_units * (tod_A / 100.0)) * new_energy_rate
-            ToD_B = (B_units * (tod_B / 100.0)) * new_energy_rate
-            ToD_C = (C_units * (tod_C / 100.0)) * new_energy_rate
-            ToD_D = (D_units * (tod_D / 100.0)) * new_energy_rate
-            ToD_charge = ToD_A + ToD_B + ToD_C + ToD_D
+        ToD_A = NewUnits["A"] * tod_A
+        ToD_B = NewUnits["B"] * tod_B
+        ToD_C = NewUnits["C"] * tod_C
+        ToD_D = NewUnits["D"] * tod_D
+        ToD_charge = ToD_A + ToD_B + ToD_C + ToD_D
 
-            # --- 4. Other charges ---
-            FAC = units_kvah * FAC_rate
-            ED = (ED_percent / 100.0) * (DC + EC + FAC + ToD_charge)
-            ToS = units_kvah * ToS_rate
+        ED = (ED_percent / 100) * (DC + EC + FAC + ToD_charge)
+        ToS = (units_kvah * 0.997) * ToS_rate
+        Total = DC + EC + FAC + ToD_charge + ED + ToS
+        LandedRate = Total / (units_kvah * 0.997)
 
-            # --- 5. Total and landed rate ---
-            Total = DC + EC + ToD_charge + FAC + ED + ToS
-            LandedRate = Total / units_kvah
+        st.success(f"✅ Landed Unit Rate = ₹{LandedRate:,.4f}/kWh")
 
-            # Display output (main summary)
-            st.success("✅ Calculation complete")
-            st.metric(label="⚡ Landed Unit Rate (₹ / kWh)", value=f"{LandedRate:,.4f}")
-            st.markdown("**Total bill (₹):** {:,.2f}".format(Total))
+        # -----------------------------
+        # Tables
+        # -----------------------------
+        st.markdown("### 📊 ToD: New Slab Units & Charges (from Old ratios & overlaps)")
+        tod_table = pd.DataFrame({
+            "New Slab": ["A","B","C","D"],
+            "New Range": [new_A_range,new_B_range,new_C_range,new_D_range],
+            "Units (kVAh)": [NewUnits["A"],NewUnits["B"],NewUnits["C"],NewUnits["D"]],
+            "Multiplier (%)": [tod_A,tod_B,tod_C,tod_D],
+            "Charge (₹)": [ToD_A,ToD_B,ToD_C,ToD_D]
+        })
+        st.table(tod_table)
 
-            # Collapsible detailed breakdown
-            with st.expander("Show detailed breakdown"):
-                st.subheader("Detailed cost breakdown")
-                st.write(f"**Month & Year:** {month_year}")
-                st.write(f"**Total units (kVAh):** {units_kvah:,.2f}")
-                st.write(f"**Maximum demand (kVA):** {max_demand_kva:,.2f}")
-                st.write("---")
-                st.write(f"**Demand Charge (DC):** ₹ {DC:,.2f}  (DC_rate = ₹{DC_rate:.2f} per kVA)")
-                st.write(f"**Energy Charge (EC):** ₹ {EC:,.2f}  (Energy rate = ₹{new_energy_rate:.4f} per kVAh)")
-                st.write(f"**ToD Charge (A):** ₹ {ToD_A:,.2f} (A_units = {A_units:,.2f}, A_mult = {tod_A}%)")
-                st.write(f"**ToD Charge (B):** ₹ {ToD_B:,.2f} (B_units = {B_units:,.2f}, B_mult = {tod_B}%)")
-                st.write(f"**ToD Charge (C):** ₹ {ToD_C:,.2f} (C_units = {C_units:,.2f}, C_mult = {tod_C}%)")
-                st.write(f"**ToD Charge (D):** ₹ {ToD_D:,.2f} (D_units = {D_units:,.2f}, D_mult = {tod_D}%)")
-                st.write(f"**Total ToD charge:** ₹ {ToD_charge:,.2f}")
-                st.write(f"**Fuel Adjustment (FAC):** ₹ {FAC:,.2f} (FAC_rate = ₹{FAC_rate:.4f} per kVAh)")
-                st.write(f"**Electricity Duty (ED):** ₹ {ED:,.2f} (ED_percent = {ED_percent}%)")
-                st.write(f"**Tax on Sale (ToS):** ₹ {ToS:,.2f} (ToS_rate = ₹{ToS_rate} per kWh)")
-                st.write("---")
-                st.write(f"**Total bill (₹):** {Total:,.2f}")
-                st.write(f"**Landed Unit Rate (₹ / kWh):** {LandedRate:,.4f}")
+        st.markdown("### 💰 Detailed Cost Breakdown")
+        breakdown_df = pd.DataFrame({
+            "Component": [
+                "Demand Charge (DC)","Energy Charge (EC)","ToD Charge","Fuel Adj. Charge (FAC)",
+                "Electricity Duty (ED)","Tax on Sale (ToS)","Total"
+            ],
+            "Value (₹)": [DC, EC, ToD_charge, FAC, ED, ToS, Total]
+        })
+        st.table(breakdown_df)
 
-            st.markdown("---")
-            if st.button("🔁 Start New Calculation"):
-                # Simple page reload by using streamlit.experimental_rerun if available.
-                try:
-                    st.experimental_rerun()
-                except Exception:
-                    st.info("Reload the page to reset values.")
-
-# Footer / help
-st.markdown("---")
-st.caption("Made for MSEDCL MYT style landed unit rate calculations. ToD multipliers are interpreted as percentage adjustments to the energy rate for that slab (e.g., -1.5 → -1.5%). Constants reset to defaults on page reload.")
-
-
-
+        # -----------------------------
+        # Export Button
+        # -----------------------------
+        export_df = pd.concat({"ToD_Table": tod_table, "Detailed_Breakdown": breakdown_df}, axis=1)
+        csv_data = export_df.to_csv(index=False).encode('utf-8')
+        st.download_button("💾 Export to CSV", csv_data, file_name="ToD_and_Detailed_Breakdown.csv", mime="text/csv")
