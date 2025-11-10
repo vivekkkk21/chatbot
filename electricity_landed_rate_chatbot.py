@@ -324,10 +324,17 @@ if st.button("Run Calculations for checked months"):
         cols = ["Month","DC","EC","ToD_charge","FAC","ED","ToS","BCR","ICR","PromptPaymentDisc","Total","LandedRate"]
         billing_df = billing_df[cols]
         st.markdown("## Billing Components (calculated for checked months)")
-        st.dataframe(billing_df.style.format("{:,.2f}"), use_container_width=True)
+        # Safer formatting: round numeric cols, keep month as text
+        numeric_cols = billing_df.select_dtypes(include="number").columns
+        for col in numeric_cols:
+            billing_df[col] = billing_df[col].round(2)
+
+        st.dataframe(billing_df, use_container_width=True)
+
     else:
         st.info("No months were checked for calculation. Tick the 'Calc' column for months you want to compute and press the button.")
 
 # Footer note
 st.markdown("---")
 st.caption("Notes: New slab ranges may contain 1 or more ranges (comma/| separated). Overlap logic maps old slab units into new slabs exactly as in the single-month calculator. Calculations preserve original formulas.")
+
