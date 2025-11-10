@@ -130,10 +130,10 @@ def default_row(month_name):
         "ToD_mul_B": 0.0,
         "ToD_mul_C": -2.17,
         "ToD_mul_D": 2.17,
-        "NewRange_A": "00:00-06:00",
-        "NewRange_B": "06:00-09:00",
-        "NewRange_C": "09:00-17:00",
-        "NewRange_D": "17:00-00:00",
+        "SlabA_Timezone": "00:00-06:00",
+        "SlabB_Timezone": "06:00-09:00",
+        "SlabC_Timezone": "09:00-17:00",
+        "SlabD_Timezone": "17:00-00:00",
     }
 
 ref_df = pd.DataFrame([default_row(m) for m in MONTHS])
@@ -268,6 +268,7 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
 
 
