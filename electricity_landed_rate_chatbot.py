@@ -39,15 +39,15 @@ MONTHS = [
 # -----------------------------
 # Global constants (editable)
 # -----------------------------
-left_col, right_col = st.columns([2.2, 1])
-with right_col:
-    st.header("🔧 Global Defaults (editable)")
-    const_df = pd.DataFrame(DEFAULT_CONSTANTS)
-    edited_constants = st.data_editor(const_df, num_rows="fixed", use_container_width=True, key="const_editor_yearly")
-    GLOBAL_DC_rate = float(edited_constants.loc[edited_constants["Parameter"] == "DC_rate", "Value"].values[0])
-    GLOBAL_FAC_rate = float(edited_constants.loc[edited_constants["Parameter"] == "FAC_rate", "Value"].values[0])
-    GLOBAL_ToS_rate = float(edited_constants.loc[edited_constants["Parameter"] == "ToS_rate", "Value"].values[0])
-    GLOBAL_ED_percent = float(edited_constants.loc[edited_constants["Parameter"] == "ED_percent", "Value"].values[0])
+# left_col, right_col = st.columns([2.2, 1])
+#with right_col:
+#    st.header("🔧 Global Defaults (editable)")
+#   const_df = pd.DataFrame(DEFAULT_CONSTANTS)
+#  #  edited_constants = st.data_editor(const_df, num_rows="fixed", use_container_width=True, key="const_editor_yearly")
+#    GLOBAL_DC_rate = float(edited_constants.loc[edited_constants["Parameter"] == "DC_rate", "Value"].values[0])
+#    GLOBAL_FAC_rate = float(edited_constants.loc[edited_constants["Parameter"] == "FAC_rate", "Value"].values[0])
+#    GLOBAL_ToS_rate = float(edited_constants.loc[edited_constants["Parameter"] == "ToS_rate", "Value"].values[0])
+#    GLOBAL_ED_percent = float(edited_constants.loc[edited_constants["Parameter"] == "ED_percent", "Value"].values[0])
 
 # -----------------------------
 # Helper functions for overlap
@@ -258,3 +258,4 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
