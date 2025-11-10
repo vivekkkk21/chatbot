@@ -122,10 +122,10 @@ def default_row(month_name):
         "FAC_rate": GLOBAL_FAC_rate,
         "ToS_rate": GLOBAL_ToS_rate,
         "ED_percent": GLOBAL_ED_percent,
-        #"ToD_ratio_A": DEFAULT_TOD_RATIOS["A"],
-        #"ToD_ratio_B": DEFAULT_TOD_RATIOS["B"],
-        #"ToD_ratio_C": DEFAULT_TOD_RATIOS["C"],
-        #"ToD_ratio_D": DEFAULT_TOD_RATIOS["D"],
+        "ToD_ratio_A": DEFAULT_TOD_RATIOS["A"],
+        "ToD_ratio_B": DEFAULT_TOD_RATIOS["B"],
+        "ToD_ratio_C": DEFAULT_TOD_RATIOS["C"],
+        "ToD_ratio_D": DEFAULT_TOD_RATIOS["D"],
         "ToD_mul_A": 0.0,
         "ToD_mul_B": 0.0,
         "ToD_mul_C": -2.17,
@@ -158,7 +158,7 @@ if st.button("Run Calculations for checked months"):
         ToS_rate = float(row["ToS_rate"])
         ED_percent = float(row["ED_percent"])
 
-        #ratios = {k: float(row[f"ToD_ratio_{k}"]) for k in "ABCD"}
+        ratios = {k: float(row[f"ToD_ratio_{k}"]) for k in "ABCD"}
         tod_multipliers = {k: float(row[f"ToD_mul_{k}"]) for k in "ABCD"}
         new_ranges = {k: parse_multi_ranges_input(row[f"NewRange_{k}"]) for k in "ABCD"}
 
@@ -268,6 +268,7 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
 
 
