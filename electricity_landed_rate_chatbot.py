@@ -7,7 +7,7 @@ from typing import List, Tuple
 st.set_page_config(page_title="Yearly Landed Unit Rate Calculator", layout="wide", page_icon="⚡")
 st.title("⚡ Yearly Landed Unit Rate Calculator")
 st.markdown("Two-table layout: **Reference Table** (top) — editable, and **Billing Components** (bottom) — auto-filled for checked months.")
-
+st.markdown("This is Calculator to calculate the **Yearly Landed Unit rate**. Edit the **Reference table** parameters and then click on checkbox to select the month for calculation.")
 # -----------------------------
 # Defaults and old slab timings
 # -----------------------------
@@ -268,6 +268,7 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
 
 
