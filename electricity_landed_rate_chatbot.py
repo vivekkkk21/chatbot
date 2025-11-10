@@ -141,26 +141,24 @@ def default_row(month_name):
 
 ref_df = pd.DataFrame([default_row(m) for m in MONTHS])
 
-# Columns to hide from display
+# Columns to hide from user
 hidden_cols = [f"ToD_ratio_{k}" for k in "ABCD"]
 
-# Columns to show in editor (everything except hidden ones)
-visible_cols = [c for c in ref_df.columns if c not in hidden_cols]
+# Create a version for display (exclude ToD ratio columns)
+ref_df_display = ref_df.drop(columns=hidden_cols)
 
-# Display only visible columns for editing
-ref_df_visible = ref_df[visible_cols]
-
-ref_df_edited_visible = st.data_editor(
-    ref_df_visible,
+# Show editable version to user
+ref_df_display_edited = st.data_editor(
+    ref_df_display,
     num_rows="fixed",
     use_container_width=True,
     key="ref_table_editor",
 )
 
-# Merge back hidden columns (keep original ratios)
-ref_df_edited = pd.concat(
-    [ref_df_edited_visible, ref_df[hidden_cols]], axis=1
-)
+# Restore hidden columns (unchanged) into the edited dataframe
+ref_df_edited = ref_df_display_edited.copy()
+for col in hidden_cols:
+    ref_df_edited[col] = ref_df[col]
 
 
 # -----------------------------
@@ -292,4 +290,5 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
