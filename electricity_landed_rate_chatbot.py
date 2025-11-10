@@ -7,7 +7,7 @@ from typing import List, Tuple
 st.set_page_config(page_title="Yearly Landed Unit Rate Calculator", layout="wide", page_icon="⚡")
 st.title("⚡ Yearly Landed Unit Rate Calculator")
 st.markdown("Two-table layout: **Reference Table** (top) — editable, and **Billing Components** (bottom) — auto-filled for checked months.")
-st.markdown("This is Calculator to calculate the **Yearly Landed Unit rate**. Edit the **Reference table** parameters and then click on checkbox to select the month for calculation.")
+
 # -----------------------------
 # Defaults and old slab timings
 # -----------------------------
@@ -122,18 +122,18 @@ def default_row(month_name):
         "FAC_rate": GLOBAL_FAC_rate,
         "ToS_rate": GLOBAL_ToS_rate,
         "ED_percent": GLOBAL_ED_percent,
-        #"ToD_ratio_A": DEFAULT_TOD_RATIOS["A"],
-        #"ToD_ratio_B": DEFAULT_TOD_RATIOS["B"],
-        #"ToD_ratio_C": DEFAULT_TOD_RATIOS["C"],
-        #"ToD_ratio_D": DEFAULT_TOD_RATIOS["D"],
+        "ToD_ratio_A": DEFAULT_TOD_RATIOS["A"],
+        "ToD_ratio_B": DEFAULT_TOD_RATIOS["B"],
+        "ToD_ratio_C": DEFAULT_TOD_RATIOS["C"],
+        "ToD_ratio_D": DEFAULT_TOD_RATIOS["D"],
         "ToD_mul_A": 0.0,
         "ToD_mul_B": 0.0,
         "ToD_mul_C": -2.17,
         "ToD_mul_D": 2.17,
-        "SlabA_Timezone": "00:00-06:00",
-        "SlabB_Timezone": "06:00-09:00",
-        "SlabC_Timezone": "09:00-17:00",
-        "SlabD_Timezone": "17:00-00:00",
+        "NewRange_A": "00:00-06:00",
+        "NewRange_B": "06:00-09:00",
+        "NewRange_C": "09:00-17:00",
+        "NewRange_D": "17:00-00:00",
     }
 
 ref_df = pd.DataFrame([default_row(m) for m in MONTHS])
@@ -160,7 +160,7 @@ if st.button("Run Calculations for checked months"):
 
         ratios = {k: float(row[f"ToD_ratio_{k}"]) for k in "ABCD"}
         tod_multipliers = {k: float(row[f"ToD_mul_{k}"]) for k in "ABCD"}
-        new_ranges = {k: parse_multi_ranges_input(row[f"Slab{k}_Timezone"]) for k in "ABCD"}
+        new_ranges = {k: parse_multi_ranges_input(row[f"NewRange_{k}"]) for k in "ABCD"}
 
         # 1️⃣ Base Charges
         DC = max_demand * DC_rate
@@ -268,13 +268,3 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
-
-
-
-
-
-
-
-
-
-
