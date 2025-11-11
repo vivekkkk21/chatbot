@@ -97,7 +97,7 @@ def parse_multi_ranges_input(s: str) -> List[Tuple[float,float]]:
 # -----------------------------
 # Energy Rate Settings Section
 # -----------------------------
-st.markdown("### ⚙️ Energy Rate Settings (Editable)")
+st.markdown("### ⚙️ Energy Rate Settings")
 col1, col2 = st.columns(2)
 with col1:
     energy_rate_1 = st.number_input("Energy Rate (₹/kVAh) for **Jan–Mar**", value=8.68, step=0.01)
@@ -108,7 +108,7 @@ with col2:
 # -----------------------------
 # Reference Table
 # -----------------------------
-st.markdown("## Reference Table (editable)")
+st.markdown("## Reference Table")
 def default_row(month_name):
     # pick which energy rate to use automatically
     energy_rate = energy_rate_1 if month_name in ["January", "February", "March"] else energy_rate_2
@@ -285,4 +285,5 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
