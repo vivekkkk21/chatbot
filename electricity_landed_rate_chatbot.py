@@ -36,28 +36,14 @@ MONTHS = [
     "July","August","September","October","November","December"
 ]
 
-
 # -----------------------------
 # Global constants (hidden defaults)
 # -----------------------------
-# (Removed the editable table from UI — using fixed defaults instead)
-
 const_df = pd.DataFrame(DEFAULT_CONSTANTS)
 GLOBAL_DC_rate = float(const_df.loc[const_df["Parameter"] == "DC_rate", "Value"].values[0])
 GLOBAL_FAC_rate = float(const_df.loc[const_df["Parameter"] == "FAC_rate", "Value"].values[0])
 GLOBAL_ToS_rate = float(const_df.loc[const_df["Parameter"] == "ToS_rate", "Value"].values[0])
 GLOBAL_ED_percent = float(const_df.loc[const_df["Parameter"] == "ED_percent", "Value"].values[0])
-
-
-#left_col, right_col = st.columns([2.2, 1])
-#with right_col:
-#    st.header("🔧 Global Defaults (editable)")
-#    const_df = pd.DataFrame(DEFAULT_CONSTANTS)
-#    edited_constants = st.data_editor(const_df, num_rows="fixed", use_container_width=True, key="const_editor_yearly")
-#    GLOBAL_DC_rate = float(edited_constants.loc[edited_constants["Parameter"] == "DC_rate", "Value"].values[0])
-#    GLOBAL_FAC_rate = float(edited_constants.loc[edited_constants["Parameter"] == "FAC_rate", "Value"].values[0])
-#    GLOBAL_ToS_rate = float(edited_constants.loc[edited_constants["Parameter"] == "ToS_rate", "Value"].values[0])
-#    GLOBAL_ED_percent = float(edited_constants.loc[edited_constants["Parameter"] == "ED_percent", "Value"].values[0])
 
 # -----------------------------
 # Helper functions for overlap
@@ -107,17 +93,31 @@ def parse_multi_ranges_input(s: str) -> List[Tuple[float,float]]:
             pass
     return parsed
 
+
+# -----------------------------
+# Energy Rate Settings Section
+# -----------------------------
+st.markdown("### ⚙️ Energy Rate Settings (Editable)")
+col1, col2 = st.columns(2)
+with col1:
+    energy_rate_1 = st.number_input("Energy Rate (₹/kVAh) for Jan–Mar", value=8.68, step=0.01)
+with col2:
+    energy_rate_2 = st.number_input("Energy Rate (₹/kVAh) for Apr–Dec", value=8.90, step=0.01)
+
+
 # -----------------------------
 # Reference Table
 # -----------------------------
 st.markdown("## Reference Table (editable)")
 def default_row(month_name):
+    # pick which energy rate to use automatically
+    energy_rate = energy_rate_1 if month_name in ["January", "February", "March"] else energy_rate_2
     return {
         "Month": month_name,
         "Calc": False,
         "MaxDemand_kVA": 13500.0,
         "Units_kVAh": 500000.0,
-        "EnergyRate_₹/kVAh": 8.68,
+        "EnergyRate_₹/kVAh": energy_rate,
         "DC_rate": GLOBAL_DC_rate,
         "FAC_rate": GLOBAL_FAC_rate,
         "ToS_rate": GLOBAL_ToS_rate,
@@ -136,28 +136,19 @@ def default_row(month_name):
         "NewRange_D": "17:00-00:00",
     }
 
-#ref_df = pd.DataFrame([default_row(m) for m in MONTHS])
-#ref_df_edited = st.data_editor(ref_df, num_rows="fixed", use_container_width=True, key="ref_table_editor")
-
 ref_df = pd.DataFrame([default_row(m) for m in MONTHS])
 
 # Columns to hide from user
 hidden_cols = [f"ToD_ratio_{k}" for k in "ABCD"]
 ref_df_display = ref_df.drop(columns=hidden_cols)
 
-# Transpose the table for vertical layout (Months as columns)
-ref_df_vertical = ref_df_display.set_index("Month").T
-
-# Show editable version
-ref_df_vertical_edited = st.data_editor(
-    ref_df_vertical,
+# Show editable version (horizontal layout)
+ref_df_display_edited = st.data_editor(
+    ref_df_display,
     num_rows="fixed",
     use_container_width=True,
-    key="ref_table_editor_vertical",
+    key="ref_table_editor",
 )
-
-# Convert back to the original horizontal layout after editing
-ref_df_display_edited = ref_df_vertical_edited.T.reset_index().rename(columns={"index": "Month"})
 
 # Restore hidden columns (unchanged)
 ref_df_edited = ref_df_display_edited.copy()
@@ -294,7 +285,3 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
-
-
-
-
