@@ -100,9 +100,9 @@ def parse_multi_ranges_input(s: str) -> List[Tuple[float,float]]:
 st.markdown("### ⚙️ Energy Rate Settings (Editable)")
 col1, col2 = st.columns(2)
 with col1:
-    energy_rate_1 = st.number_input("Energy Rate (₹/kVAh) for Jan–Mar", value=8.68, step=0.01)
+    energy_rate_1 = st.number_input("Energy Rate (₹/kVAh) for **Jan–Mar**", value=8.68, step=0.01)
 with col2:
-    energy_rate_2 = st.number_input("Energy Rate (₹/kVAh) for Apr–Dec", value=8.90, step=0.01)
+    energy_rate_2 = st.number_input("Energy Rate (₹/kVAh) for **Apr–Dec**", value=8.90, step=0.01)
 
 
 # -----------------------------
@@ -285,3 +285,4 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
