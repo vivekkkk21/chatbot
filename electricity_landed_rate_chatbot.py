@@ -143,19 +143,23 @@ ref_df = pd.DataFrame([default_row(m) for m in MONTHS])
 
 # Columns to hide from user
 hidden_cols = [f"ToD_ratio_{k}" for k in "ABCD"]
-
-# Create a version for display (exclude ToD ratio columns)
 ref_df_display = ref_df.drop(columns=hidden_cols)
 
-# Show editable version to user
-ref_df_display_edited = st.data_editor(
-    ref_df_display,
+# Transpose the table for vertical layout (Months as columns)
+ref_df_vertical = ref_df_display.set_index("Month").T
+
+# Show editable version
+ref_df_vertical_edited = st.data_editor(
+    ref_df_vertical,
     num_rows="fixed",
     use_container_width=True,
-    key="ref_table_editor",
+    key="ref_table_editor_vertical",
 )
 
-# Restore hidden columns (unchanged) into the edited dataframe
+# Convert back to the original horizontal layout after editing
+ref_df_display_edited = ref_df_vertical_edited.T.reset_index().rename(columns={"index": "Month"})
+
+# Restore hidden columns (unchanged)
 ref_df_edited = ref_df_display_edited.copy()
 for col in hidden_cols:
     ref_df_edited[col] = ref_df[col]
@@ -290,6 +294,7 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
 
 
