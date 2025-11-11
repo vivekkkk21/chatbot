@@ -240,7 +240,7 @@ if st.button("Run Calculations for checked months"):
     if billing_rows:
         billing_df = pd.DataFrame(billing_rows)
         billing_df = billing_df.round(2)
-        st.markdown("## Billing Components (calculated)")
+        st.markdown("## Billing Components")
         st.dataframe(billing_df, use_container_width=True)
 
         # -----------------------------
@@ -285,5 +285,6 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
 
