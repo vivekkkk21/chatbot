@@ -187,6 +187,12 @@ for i, month in enumerate(MONTHS):
     )
 
 # --- 4️⃣ Add Calc row back after checkbox edits ---
+#ref_df_vertical_edited.loc["Calc"] = pd.Series(calc_values)
+
+# Convert to flexible dtype before adding Calc row
+ref_df_vertical_edited = ref_df_vertical_edited.astype(object)
+
+# Add Calc row safely
 ref_df_vertical_edited.loc["Calc"] = pd.Series(calc_values)
 
 
