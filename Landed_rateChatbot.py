@@ -1,4 +1,4 @@
-# yearly_landed_rate_vertical.py
+# yearly_landed_rate.py
 import streamlit as st
 import pandas as pd
 from io import BytesIO
@@ -37,7 +37,7 @@ MONTHS = [
 ]
 
 # -----------------------------
-# Global constants
+# Global constants (hidden defaults)
 # -----------------------------
 const_df = pd.DataFrame(DEFAULT_CONSTANTS)
 GLOBAL_DC_rate = float(const_df.loc[const_df["Parameter"] == "DC_rate", "Value"].values[0])
@@ -46,7 +46,7 @@ GLOBAL_ToS_rate = float(const_df.loc[const_df["Parameter"] == "ToS_rate", "Value
 GLOBAL_ED_percent = float(const_df.loc[const_df["Parameter"] == "ED_percent", "Value"].values[0])
 
 # -----------------------------
-# Helper functions
+# Helper functions for overlap (unchanged logic)
 # -----------------------------
 def parse_time(t: str) -> float:
     hh, mm = t.split(":")
@@ -93,23 +93,19 @@ def parse_multi_ranges_input(s: str) -> List[Tuple[float,float]]:
             pass
     return parsed
 
-
 # -----------------------------
-# Energy Rate Settings Section
+# Energy Rate Settings Section (two seasonal rates)
 # -----------------------------
 st.markdown("### ⚙️ Energy Rate Settings")
 col1, col2 = st.columns(2)
 with col1:
-    energy_rate_1 = st.number_input("Energy Rate (₹/kVAh) for **Jan–Mar**", value=8.68, step=0.01)
+    energy_rate_1 = st.number_input("Energy Rate (₹/kVAh) for **Jan–Mar**", value=8.68, step=0.01, key="energy_rate_1")
 with col2:
-    energy_rate_2 = st.number_input("Energy Rate (₹/kVAh) for **Apr–Dec**", value=8.90, step=0.01)
-
+    energy_rate_2 = st.number_input("Energy Rate (₹/kVAh) for **Apr–Dec**", value=8.90, step=0.01, key="energy_rate_2")
 
 # -----------------------------
-# Reference Table (VERTICAL)
+# Build Reference Table (horizontal data), then prepare vertical display
 # -----------------------------
-st.markdown("## Reference Table")
-
 def default_row(month_name):
     energy_rate = energy_rate_1 if month_name in ["January", "February", "March"] else energy_rate_2
     return {
@@ -122,48 +118,73 @@ def default_row(month_name):
         "FAC_rate": GLOBAL_FAC_rate,
         "ToS_rate": GLOBAL_ToS_rate,
         "ED_percent": GLOBAL_ED_percent,
+        # ToD ratios: kept but not shown
         "ToD_ratio_A": DEFAULT_TOD_RATIOS["A"],
         "ToD_ratio_B": DEFAULT_TOD_RATIOS["B"],
         "ToD_ratio_C": DEFAULT_TOD_RATIOS["C"],
         "ToD_ratio_D": DEFAULT_TOD_RATIOS["D"],
+        # multipliers (user may edit per-month)
         "ToD_mul_A": 0.0,
         "ToD_mul_B": 0.0,
         "ToD_mul_C": -2.17,
         "ToD_mul_D": 2.17,
+        # new ranges (editable)
         "NewRange_A": "00:00-06:00",
         "NewRange_B": "06:00-09:00",
         "NewRange_C": "09:00-17:00",
         "NewRange_D": "17:00-00:00",
     }
 
-ref_df = pd.DataFrame([default_row(m) for m in MONTHS])
-hidden_cols = [f"ToD_ratio_{k}" for k in "ABCD"]
-ref_df_display = ref_df.drop(columns=hidden_cols)
+# horizontal dataframe (one row per month)
+ref_df_horiz = pd.DataFrame([default_row(m) for m in MONTHS])
 
-# Transpose for vertical layout
-ref_df_vertical = ref_df_display.set_index("Month").T
+# columns to hide from the displayed table (ToD ratios)
+hidden_cols = [f"ToD_ratio_{k}" for k in "ABCD"]
+
+# prepare display dataframe: drop hidden columns and pivot to vertical (parameters x months)
+ref_df_display = ref_df_horiz.drop(columns=hidden_cols).set_index("Month")  # index = months, columns = parameters
+ref_df_vertical = ref_df_display.T  # index = parameters (rows), columns = months
+
+# show vertical editable table
+st.markdown("## Reference Table (vertical view — parameters as rows, months as columns)")
 ref_df_vertical_edited = st.data_editor(
     ref_df_vertical,
     num_rows="fixed",
     use_container_width=True,
-    key="ref_table_editor_vertical",
+    key="ref_table_vertical_editor",
 )
 
-# Convert back to original structure
+# convert back to horizontal structure for internal use (months as rows)
+# edited_vertical: index = parameters, columns = months -> transpose to months x parameters
 ref_df_display_edited = ref_df_vertical_edited.T.reset_index().rename(columns={"index": "Month"})
+# Ensure columns order same as original (some editors may coerce types)
+# Add back hidden ToD_ratio columns unchanged from original
 ref_df_edited = ref_df_display_edited.copy()
 for col in hidden_cols:
-    ref_df_edited[col] = ref_df[col]
+    ref_df_edited[col] = ref_df_horiz[col].values
 
+# Ensure Month order matches MONTHS
+# If the data_editor allowed month-name editing, enforce original month ordering
+try:
+    ref_df_edited["Month"] = pd.Categorical(ref_df_edited["Month"], categories=MONTHS, ordered=True)
+    ref_df_edited = ref_df_edited.sort_values("Month").reset_index(drop=True)
+    ref_df_edited["Month"] = ref_df_edited["Month"].astype(str)
+except Exception:
+    # fallback: keep as-is
+    pass
 
 # -----------------------------
-# Run Calculations
+# Run calculations (same formulas and logic)
 # -----------------------------
 if st.button("Run Calculations for checked months"):
     billing_rows = []
 
     for _, row in ref_df_edited.iterrows():
-        if not bool(row["Calc"]):
+        # skip months not checked
+        try:
+            if not bool(row.get("Calc", False)):
+                continue
+        except Exception:
             continue
 
         month_name = row["Month"]
@@ -177,12 +198,16 @@ if st.button("Run Calculations for checked months"):
 
         ratios = {k: float(row[f"ToD_ratio_{k}"]) for k in "ABCD"}
         tod_multipliers = {k: float(row[f"ToD_mul_{k}"]) for k in "ABCD"}
-        new_ranges = {k: parse_multi_ranges_input(row[f"NewRange_{k}"]) for k in "ABCD"}
+        new_ranges = {k: parse_multi_ranges_input(str(row[f"NewRange_{k}"])) for k in "ABCD"}
 
+        # 1️⃣ Base Charges
         DC = max_demand * DC_rate
         EC = units * energy_rate
+
+        # 2️⃣ Old ToD Units
         OldUnits = {k: units * (ratios[k] / 100.0) for k in "ABCD"}
 
+        # 3️⃣ Redistribute based on overlaps
         NewUnits = {k: 0.0 for k in "ABCD"}
         for old_k, old_segments in OLD_SLAB_TIMINGS.items():
             old_dur = sum((parse_time(e) - parse_time(s)) % 24 for s, e in old_segments)
@@ -190,23 +215,31 @@ if st.button("Run Calculations for checked months"):
                 overlap = total_overlap_hours_multi(
                     [parse_range_str(f"{s}-{e}") for s, e in old_segments], new_segs
                 )
-                NewUnits[new_k] += OldUnits[old_k] * (overlap / old_dur if old_dur > 0 else 0)
+                if old_dur > 0:
+                    NewUnits[new_k] += OldUnits[old_k] * (overlap / old_dur)
+        # tiny numeric clean
+        for k in NewUnits:
+            if abs(NewUnits[k]) < 1e-9:
+                NewUnits[k] = 0.0
 
+        # 4️⃣ ToD Charges (multipliers used as ₹/kVAh as in your latest code)
         ToD_charge = sum(NewUnits[k] * tod_multipliers[k] for k in "ABCD")
 
+        # 5️⃣ Other Charges
         FAC = units * FAC_rate
         ED = (ED_percent / 100.0) * (DC + EC + FAC + ToD_charge)
         ToS = (units * 0.997) * ToS_rate
+
         kWh = units * 0.997
         ICR = ((kWh - 4044267) * (-0.75))
 
-        def BCR_fn(units):
-            if units <= 900000:
-                return -(units * 0.07)
-            elif units <= 5000000:
-                return -(900000 * 0.07 + (units - 900000) * 0.09)
+        def BCR_fn(units_val):
+            if units_val <= 900000:
+                return -(units_val * 0.07)
+            elif units_val <= 5000000:
+                return -(900000 * 0.07 + (units_val - 900000) * 0.09)
             else:
-                return -(900000 * 0.07 + 4100000 * 0.09 + (units - 5000000) * 0.11)
+                return -(900000 * 0.07 + 4100000 * 0.09 + (units_val - 5000000) * 0.11)
 
         BCR = BCR_fn(units)
         Total = DC + EC + ToD_charge + FAC + ED + ToS + BCR + ICR
@@ -229,31 +262,59 @@ if st.button("Run Calculations for checked months"):
         })
 
     if billing_rows:
-        billing_df = pd.DataFrame(billing_rows).round(2)
-        st.markdown("## Billing Components")
+        billing_df = pd.DataFrame(billing_rows)
+        # round for nicer display
+        billing_df = billing_df.round(2)
+        st.markdown("## Billing Components (calculated)")
         st.dataframe(billing_df, use_container_width=True)
 
-        # Export
+        # -----------------------------
+        # Export Buttons
+        # -----------------------------
         st.markdown("### 📤 Export Results")
+
         csv_ref = ref_df_edited.to_csv(index=False).encode('utf-8')
         csv_bill = billing_df.to_csv(index=False).encode('utf-8')
 
-        def to_excel(ref_df, bill_df):
+        def to_excel_bytes(ref_df_in, bill_df_in):
             output = BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                ref_df.to_excel(writer, index=False, sheet_name='Reference Table')
-                bill_df.to_excel(writer, index=False, sheet_name='Billing Components')
-            return output.getvalue()
+            # try xlsxwriter/openpyxl via pandas
+            try:
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    ref_df_in.to_excel(writer, index=False, sheet_name='Reference Table')
+                    bill_df_in.to_excel(writer, index=False, sheet_name='Billing Components')
+                return output.getvalue()
+            except Exception:
+                # fallback: write CSVs into a zip-like approach isn't necessary; just return None
+                return None
 
-        xlsx_data = to_excel(ref_df_edited, billing_df)
+        xlsx_data = to_excel_bytes(ref_df_edited, billing_df)
 
-        st.download_button("⬇️ Download Reference Table (CSV)", csv_ref, "reference_table.csv", "text/csv")
-        st.download_button("⬇️ Download Billing Components (CSV)", csv_bill, "billing_components.csv", "text/csv")
-        st.download_button("⬇️ Download All (Excel)", xlsx_data, "Electricity_LandedRate_Report.xlsx", 
-                           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        st.download_button(
+            label="⬇️ Download Reference Table (CSV)",
+            data=csv_ref,
+            file_name="reference_table.csv",
+            mime="text/csv"
+        )
+        st.download_button(
+            label="⬇️ Download Billing Components (CSV)",
+            data=csv_bill,
+            file_name="billing_components.csv",
+            mime="text/csv"
+        )
+        if xlsx_data:
+            st.download_button(
+                label="⬇️ Download All (Excel)",
+                data=xlsx_data,
+                file_name="Electricity_LandedRate_Report.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            st.info("Excel export not available in this environment (xlsx writer missing). CSVs are available.")
 
     else:
         st.info("No months selected. Tick the 'Calc' column before running.")
 
+# Footer
 st.markdown("---")
-st.caption("Export buttons support CSV & Excel formats.")
+st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
