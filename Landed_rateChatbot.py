@@ -154,7 +154,7 @@ ref_df_vertical = ref_df_display.T  # index = parameters (rows), columns = month
 #    key="ref_table_vertical_editor",
 #)
 
-st.markdown("## Reference Table (vertical view — parameters as rows, months as columns)")
+st.markdown("## Reference Table")
 
 # --- 1️⃣ Remove Calc row before displaying ---
 ref_df_vertical_no_calc = ref_df_vertical.drop(index="Calc")
@@ -297,7 +297,7 @@ if st.button("Run Calculations for checked months"):
         billing_df = pd.DataFrame(billing_rows)
         # round for nicer display
         billing_df = billing_df.round(2)
-        st.markdown("## Billing Components (calculated)")
+        st.markdown("## Billing Components")
         st.dataframe(billing_df, use_container_width=True)
 
         # -----------------------------
@@ -350,6 +350,7 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
 
 
