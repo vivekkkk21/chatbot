@@ -156,22 +156,21 @@ ref_df_vertical = ref_df_display.T  # index = parameters (rows), columns = month
 
 st.markdown("## Reference Table")
 
-# Drop Calc row before displaying
-ref_df_vertical_no_calc = ref_df_vertical.drop(index="Calc")
+# --- Editable Reference Table (keep layout same) ---
+st.markdown("## Reference Table (vertical view — parameters as rows, months as columns)")
 
-# Reset index so that "Parameter" becomes editable column
-ref_df_vertical_display = ref_df_vertical_no_calc.reset_index().rename(columns={"index": "Parameter"})
+# Convert all numeric cells to editable dtype (avoid mixed types)
+ref_df_vertical_editable = ref_df_vertical.copy()
+for col in ref_df_vertical_editable.columns:
+    ref_df_vertical_editable[col] = pd.to_numeric(ref_df_vertical_editable[col], errors="ignore")
 
-# Make the table editable
+# Make table editable (without changing appearance)
 ref_df_vertical_edited = st.data_editor(
-    ref_df_vertical_display,
-    num_rows="fixed",
+    ref_df_vertical_editable,
     use_container_width=True,
+    num_rows="fixed",
     key="ref_table_vertical_editor",
 )
-
-# Convert back to original format for internal use
-ref_df_vertical_edited = ref_df_vertical_edited.set_index("Parameter")
 
 
 # --- 3️⃣ Add Calc checkboxes as a bottom row ---
@@ -357,6 +356,7 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
 
 
