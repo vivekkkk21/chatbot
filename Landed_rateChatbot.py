@@ -32,8 +32,8 @@ OLD_SLAB_TIMINGS = {
 DEFAULT_TOD_RATIOS = {"A": 33.541412, "B": 34.476496, "C": 6.837052, "D": 25.14506}
 
 MONTHS = [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December"
+    "Jan","Feb","March","April","May","June",
+    "July","Aug","Sept","Oct","Nov","Dec"
 ]
 
 # -----------------------------
@@ -350,4 +350,5 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
