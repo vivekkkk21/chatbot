@@ -107,7 +107,7 @@ with col2:
 # Build Reference Table (horizontal data), then prepare vertical display
 # -----------------------------
 def default_row(month_name):
-    energy_rate = energy_rate_1 if month_name in ["January", "February", "March"] else energy_rate_2
+    energy_rate = energy_rate_1 if month_name in ["Jan", "Feb", "March"] else energy_rate_2
     return {
         "Month": month_name,
         "Calc": False,
@@ -350,5 +350,6 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
 
