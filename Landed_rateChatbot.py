@@ -156,16 +156,23 @@ ref_df_vertical = ref_df_display.T  # index = parameters (rows), columns = month
 
 st.markdown("## Reference Table")
 
-# --- 1️⃣ Remove Calc row before displaying ---
+# Drop Calc row before displaying
 ref_df_vertical_no_calc = ref_df_vertical.drop(index="Calc")
 
-# --- 2️⃣ Display the vertical reference table (editable) ---
+# Reset index so that "Parameter" becomes editable column
+ref_df_vertical_display = ref_df_vertical_no_calc.reset_index().rename(columns={"index": "Parameter"})
+
+# Make the table editable
 ref_df_vertical_edited = st.data_editor(
-    ref_df_vertical_no_calc,
+    ref_df_vertical_display,
     num_rows="fixed",
     use_container_width=True,
     key="ref_table_vertical_editor",
 )
+
+# Convert back to original format for internal use
+ref_df_vertical_edited = ref_df_vertical_edited.set_index("Parameter")
+
 
 # --- 3️⃣ Add Calc checkboxes as a bottom row ---
 st.markdown("### Select Months for Calculation")
@@ -350,6 +357,7 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
 
 
