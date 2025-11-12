@@ -1,11 +1,12 @@
-# yearly_landed_rate.py
+# yearly_landed_rate_vertical.py
 import streamlit as st
 import pandas as pd
+from io import BytesIO
 from typing import List, Tuple
 
 st.set_page_config(page_title="Yearly Landed Unit Rate Calculator", layout="wide", page_icon="⚡")
 st.title("⚡ Yearly Landed Unit Rate Calculator")
-st.markdown("Two-table layout: **Reference Table** (top) — editable, and **Billing Components** (bottom) — auto-filled for checked months.")
+st.markdown("Fill out the **Reference table** to calculate the **Landed Unit rate**. Click checkbox and select appropriate month before calculation")
 
 # -----------------------------
 # Defaults and old slab timings
@@ -21,7 +22,6 @@ DEFAULT_CONSTANTS = {
     "Value": [600.0, 0.5, 0.18, 7.5],
 }
 
-# OLD_SLAB_TIMINGS preserved (used for overlap mapping). Do not change.
 OLD_SLAB_TIMINGS = {
     "A": [("22:00", "06:00")],
     "B": [("06:00", "09:00"), ("12:00", "18:00")],
@@ -29,7 +29,6 @@ OLD_SLAB_TIMINGS = {
     "D": [("18:00", "22:00")],
 }
 
-# Default ToD ratios to prefill reference table (same defaults as requested)
 DEFAULT_TOD_RATIOS = {"A": 33.541412, "B": 34.476496, "C": 6.837052, "D": 25.14506}
 
 MONTHS = [
@@ -38,30 +37,16 @@ MONTHS = [
 ]
 
 # -----------------------------
-# Right column: global constants (editable but per-month values will be used in calculations)
+# Global constants
 # -----------------------------
-left_col, right_col = st.columns([2.2, 1])
-with right_col:
-    st.header("🔧 Global Defaults (editable)")
-    const_df = pd.DataFrame(DEFAULT_CONSTANTS)
-    try:
-        edited_constants = st.data_editor(const_df, num_rows="fixed", use_container_width=True, key="const_editor_yearly")
-        GLOBAL_DC_rate = float(edited_constants.loc[edited_constants["Parameter"] == "DC_rate", "Value"].values[0])
-        GLOBAL_FAC_rate = float(edited_constants.loc[edited_constants["Parameter"] == "FAC_rate", "Value"].values[0])
-        GLOBAL_ToS_rate = float(edited_constants.loc[edited_constants["Parameter"] == "ToS_rate", "Value"].values[0])
-        GLOBAL_ED_percent = float(edited_constants.loc[edited_constants["Parameter"] == "ED_percent", "Value"].values[0])
-    except Exception:
-        st.warning("Interactive constants editor not available — using internal defaults.")
-        GLOBAL_DC_rate, GLOBAL_FAC_rate, GLOBAL_ToS_rate, GLOBAL_ED_percent = DEFAULT_CONSTANTS["Value"]
-
-    st.markdown("---")
-    st.write(pd.DataFrame({
-        "Parameter": ["DC_rate (₹/kVA)", "FAC_rate (₹/kVAh)", "ToS_rate (₹/kWh)", "ED_percent (%)"],
-        "Value": [f"{GLOBAL_DC_rate}", f"{GLOBAL_FAC_rate}", f"{GLOBAL_ToS_rate}", f"{GLOBAL_ED_percent}"]
-    }))
+const_df = pd.DataFrame(DEFAULT_CONSTANTS)
+GLOBAL_DC_rate = float(const_df.loc[const_df["Parameter"] == "DC_rate", "Value"].values[0])
+GLOBAL_FAC_rate = float(const_df.loc[const_df["Parameter"] == "FAC_rate", "Value"].values[0])
+GLOBAL_ToS_rate = float(const_df.loc[const_df["Parameter"] == "ToS_rate", "Value"].values[0])
+GLOBAL_ED_percent = float(const_df.loc[const_df["Parameter"] == "ED_percent", "Value"].values[0])
 
 # -----------------------------
-# Helper functions for times & overlap
+# Helper functions
 # -----------------------------
 def parse_time(t: str) -> float:
     hh, mm = t.split(":")
@@ -92,262 +77,141 @@ def total_overlap_hours_multi(old_segments: List[Tuple[float, float]], new_segme
     return total_overlap
 
 def parse_multi_ranges_input(s: str) -> List[Tuple[float,float]]:
-    """
-    Accepts a string like:
-      "06:00-09:00, 12:00-18:00" or "06:00-09:00|12:00-18:00"
-    Returns list of (start_h, end_h) tuples.
-    """
     if not isinstance(s, str) or not s.strip():
         return []
-    parts = []
     for sep in [",", "|", ";"]:
         if sep in s:
             parts = [p.strip() for p in s.split(sep) if p.strip()]
             break
-    if not parts:
+    else:
         parts = [s.strip()]
     parsed = []
     for p in parts:
         try:
             parsed.append(parse_range_str(p))
         except Exception:
-            # ignore invalid formats
             pass
     return parsed
 
+
 # -----------------------------
-# Reference Table (editable) — includes DC/FAC/ToS/ED and ToD ratios
+# Energy Rate Settings Section
 # -----------------------------
-st.markdown("## Reference Table (editable)")
+st.markdown("### ⚙️ Energy Rate Settings")
+col1, col2 = st.columns(2)
+with col1:
+    energy_rate_1 = st.number_input("Energy Rate (₹/kVAh) for **Jan–Mar**", value=8.68, step=0.01)
+with col2:
+    energy_rate_2 = st.number_input("Energy Rate (₹/kVAh) for **Apr–Dec**", value=8.90, step=0.01)
+
+
+# -----------------------------
+# Reference Table (VERTICAL)
+# -----------------------------
+st.markdown("## Reference Table")
+
 def default_row(month_name):
+    energy_rate = energy_rate_1 if month_name in ["January", "February", "March"] else energy_rate_2
     return {
         "Month": month_name,
-        "Calc": False,  # whether to calculate this month
+        "Calc": False,
         "MaxDemand_kVA": 13500.0,
         "Units_kVAh": 500000.0,
-        "EnergyRate_₹/kVAh": 8.68,
-
-        # Per-month editable constants (these will be used in calculation for that month)
-        "DC_rate": float(GLOBAL_DC_rate),
-        "FAC_rate": float(GLOBAL_FAC_rate),
-        "ToS_rate": float(GLOBAL_ToS_rate),
-        "ED_percent": float(GLOBAL_ED_percent),
-
-        # ToD ratios per month (these determine how OldUnits are computed)
-        "ToD_ratio_A": float(DEFAULT_TOD_RATIOS["A"]),
-        "ToD_ratio_B": float(DEFAULT_TOD_RATIOS["B"]),
-        "ToD_ratio_C": float(DEFAULT_TOD_RATIOS["C"]),
-        "ToD_ratio_D": float(DEFAULT_TOD_RATIOS["D"]),
-
-        # ToD multipliers (used for ToD charge calculation)
+        "EnergyRate_₹/kVAh": energy_rate,
+        "DC_rate": GLOBAL_DC_rate,
+        "FAC_rate": GLOBAL_FAC_rate,
+        "ToS_rate": GLOBAL_ToS_rate,
+        "ED_percent": GLOBAL_ED_percent,
+        "ToD_ratio_A": DEFAULT_TOD_RATIOS["A"],
+        "ToD_ratio_B": DEFAULT_TOD_RATIOS["B"],
+        "ToD_ratio_C": DEFAULT_TOD_RATIOS["C"],
+        "ToD_ratio_D": DEFAULT_TOD_RATIOS["D"],
         "ToD_mul_A": 0.0,
         "ToD_mul_B": 0.0,
         "ToD_mul_C": -2.17,
         "ToD_mul_D": 2.17,
-
-        # New slab ranges (can be single or multiple ranges separated by comma/|/;)
         "NewRange_A": "00:00-06:00",
         "NewRange_B": "06:00-09:00",
         "NewRange_C": "09:00-17:00",
         "NewRange_D": "17:00-00:00",
     }
 
-ref_rows = [default_row(m) for m in MONTHS]
-ref_df = pd.DataFrame(ref_rows)
+ref_df = pd.DataFrame([default_row(m) for m in MONTHS])
+hidden_cols = [f"ToD_ratio_{k}" for k in "ABCD"]
+ref_df_display = ref_df.drop(columns=hidden_cols)
 
-# Display editable reference table
-try:
-    ref_df_edited = st.data_editor(ref_df, num_rows="fixed", use_container_width=True, key="ref_table_editor")
-except Exception:
-    st.warning("Interactive table editor not supported — falling back to manual inputs.")
-    ref_df_edited = ref_df.copy()
-    for i, row in ref_df_edited.iterrows():
-        st.write(f"### {row['Month']}")
-        ref_df_edited.at[i, "Calc"] = st.checkbox(f"Calculate {row['Month']}", key=f"cb_{i}", value=row["Calc"])
-        ref_df_edited.at[i, "MaxDemand_kVA"] = st.number_input(f"MaxDemand_kVA_{i}", value=row["MaxDemand_kVA"])
-        ref_df_edited.at[i, "Units_kVAh"] = st.number_input(f"Units_kVAh_{i}", value=row["Units_kVAh"])
-        ref_df_edited.at[i, "EnergyRate_₹/kVAh"] = st.number_input(f"EnergyRate_{i}", value=row["EnergyRate_₹/kVAh"])
-        ref_df_edited.at[i, "DC_rate"] = st.number_input(f"DC_rate_{i}", value=row["DC_rate"])
-        ref_df_edited.at[i, "FAC_rate"] = st.number_input(f"FAC_rate_{i}", value=row["FAC_rate"])
-        ref_df_edited.at[i, "ToS_rate"] = st.number_input(f"ToS_rate_{i}", value=row["ToS_rate"])
-        ref_df_edited.at[i, "ED_percent"] = st.number_input(f"ED_percent_{i}", value=row["ED_percent"])
-        ref_df_edited.at[i, "ToD_ratio_A"] = st.number_input(f"ToD_ratio_A_{i}", value=row["ToD_ratio_A"])
-        ref_df_edited.at[i, "ToD_ratio_B"] = st.number_input(f"ToD_ratio_B_{i}", value=row["ToD_ratio_B"])
-        ref_df_edited.at[i, "ToD_ratio_C"] = st.number_input(f"ToD_ratio_C_{i}", value=row["ToD_ratio_C"])
-        ref_df_edited.at[i, "ToD_ratio_D"] = st.number_input(f"ToD_ratio_D_{i}", value=row["ToD_ratio_D"])
-        ref_df_edited.at[i, "ToD_mul_A"] = st.number_input(f"ToD_mul_A_{i}", value=row["ToD_mul_A"])
-        ref_df_edited.at[i, "ToD_mul_B"] = st.number_input(f"ToD_mul_B_{i}", value=row["ToD_mul_B"])
-        ref_df_edited.at[i, "ToD_mul_C"] = st.number_input(f"ToD_mul_C_{i}", value=row["ToD_mul_C"])
-        ref_df_edited.at[i, "ToD_mul_D"] = st.number_input(f"ToD_mul_D_{i}", value=row["ToD_mul_D"])
-        ref_df_edited.at[i, "NewRange_A"] = st.text_input(f"NewRange_A_{i}", value=row["NewRange_A"])
-        ref_df_edited.at[i, "NewRange_B"] = st.text_input(f"NewRange_B_{i}", value=row["NewRange_B"])
-        ref_df_edited.at[i, "NewRange_C"] = st.text_input(f"NewRange_C_{i}", value=row["NewRange_C"])
-        ref_df_edited.at[i, "NewRange_D"] = st.text_input(f"NewRange_D_{i}", value=row["NewRange_D"])
+# Transpose for vertical layout
+ref_df_vertical = ref_df_display.set_index("Month").T
+ref_df_vertical_edited = st.data_editor(
+    ref_df_vertical,
+    num_rows="fixed",
+    use_container_width=True,
+    key="ref_table_editor_vertical",
+)
+
+# Convert back to original structure
+ref_df_display_edited = ref_df_vertical_edited.T.reset_index().rename(columns={"index": "Month"})
+ref_df_edited = ref_df_display_edited.copy()
+for col in hidden_cols:
+    ref_df_edited[col] = ref_df[col]
+
 
 # -----------------------------
-# Run calculations for checked months
+# Run Calculations
 # -----------------------------
 if st.button("Run Calculations for checked months"):
     billing_rows = []
 
     for _, row in ref_df_edited.iterrows():
-        try:
-            calc_flag = bool(row.get("Calc", False))
-        except Exception:
-            calc_flag = False
-        if not calc_flag:
+        if not bool(row["Calc"]):
             continue
 
-        # read per-month inputs (with safe fallbacks)
-        month_name = row.get("Month", "Unknown")
-        try:
-            max_demand_kva = float(row.get("MaxDemand_kVA", 0.0))
-        except Exception:
-            max_demand_kva = 0.0
-        try:
-            units_kvah = float(row.get("Units_kVAh", 0.0))
-        except Exception:
-            units_kvah = 0.0
-        try:
-            new_energy_rate = float(row.get("EnergyRate_₹/kVAh", 0.0))
-        except Exception:
-            new_energy_rate = 0.0
+        month_name = row["Month"]
+        max_demand = float(row["MaxDemand_kVA"])
+        units = float(row["Units_kVAh"])
+        energy_rate = float(row["EnergyRate_₹/kVAh"])
+        DC_rate = float(row["DC_rate"])
+        FAC_rate = float(row["FAC_rate"])
+        ToS_rate = float(row["ToS_rate"])
+        ED_percent = float(row["ED_percent"])
 
-        # per-month constants (use per-month edited values)
-        try:
-            DC_rate = float(row.get("DC_rate", GLOBAL_DC_rate))
-        except Exception:
-            DC_rate = GLOBAL_DC_rate
-        try:
-            FAC_rate = float(row.get("FAC_rate", GLOBAL_FAC_rate))
-        except Exception:
-            FAC_rate = GLOBAL_FAC_rate
-        try:
-            ToS_rate = float(row.get("ToS_rate", GLOBAL_ToS_rate))
-        except Exception:
-            ToS_rate = GLOBAL_ToS_rate
-        try:
-            ED_percent = float(row.get("ED_percent", GLOBAL_ED_percent))
-        except Exception:
-            ED_percent = GLOBAL_ED_percent
+        ratios = {k: float(row[f"ToD_ratio_{k}"]) for k in "ABCD"}
+        tod_multipliers = {k: float(row[f"ToD_mul_{k}"]) for k in "ABCD"}
+        new_ranges = {k: parse_multi_ranges_input(row[f"NewRange_{k}"]) for k in "ABCD"}
 
-        # per-month ToD ratios (these will be used to compute OldUnits distribution)
-        try:
-            ratio_A = float(row.get("ToD_ratio_A", DEFAULT_TOD_RATIOS["A"]))
-            ratio_B = float(row.get("ToD_ratio_B", DEFAULT_TOD_RATIOS["B"]))
-            ratio_C = float(row.get("ToD_ratio_C", DEFAULT_TOD_RATIOS["C"]))
-            ratio_D = float(row.get("ToD_ratio_D", DEFAULT_TOD_RATIOS["D"]))
-        except Exception:
-            ratio_A, ratio_B, ratio_C, ratio_D = (DEFAULT_TOD_RATIOS["A"], DEFAULT_TOD_RATIOS["B"], DEFAULT_TOD_RATIOS["C"], DEFAULT_TOD_RATIOS["D"])
+        DC = max_demand * DC_rate
+        EC = units * energy_rate
+        OldUnits = {k: units * (ratios[k] / 100.0) for k in "ABCD"}
 
-        # ToD multipliers (used later to compute ToD charge)
-        try:
-            tod_A = float(row.get("ToD_mul_A", 0.0))
-            tod_B = float(row.get("ToD_mul_B", 0.0))
-            tod_C = float(row.get("ToD_mul_C", 0.0))
-            tod_D = float(row.get("ToD_mul_D", 0.0))
-        except Exception:
-            tod_A, tod_B, tod_C, tod_D = 0.0, 0.0, -2.17, 2.17
+        NewUnits = {k: 0.0 for k in "ABCD"}
+        for old_k, old_segments in OLD_SLAB_TIMINGS.items():
+            old_dur = sum((parse_time(e) - parse_time(s)) % 24 for s, e in old_segments)
+            for new_k, new_segs in new_ranges.items():
+                overlap = total_overlap_hours_multi(
+                    [parse_range_str(f"{s}-{e}") for s, e in old_segments], new_segs
+                )
+                NewUnits[new_k] += OldUnits[old_k] * (overlap / old_dur if old_dur > 0 else 0)
 
-        # parse new ranges per slab (allow multiple ranges)
-        new_ranges_input = {
-            "A": row.get("NewRange_A", ""),
-            "B": row.get("NewRange_B", ""),
-            "C": row.get("NewRange_C", ""),
-            "D": row.get("NewRange_D", ""),
-        }
-        new_ranges_parsed = {}
-        for k, text in new_ranges_input.items():
-            parsed = parse_multi_ranges_input(str(text))
-            if not parsed:
-                parsed = [(0.0, 0.0)]
-            new_ranges_parsed[k] = parsed
+        ToD_charge = sum(NewUnits[k] * tod_multipliers[k] for k in "ABCD")
 
-        # --- 1. Demand Charge ---
-        DC = max_demand_kva * DC_rate
-
-        # --- 2. Base Energy Charge (EC) ---
-        EC = units_kvah * new_energy_rate
-
-        # --- 3. ToD charge calculation using per-month ToD ratios mapped via overlaps ---
-        OldUnits = {
-            "A": units_kvah * (ratio_A / 100.0),
-            "B": units_kvah * (ratio_B / 100.0),
-            "C": units_kvah * (ratio_C / 100.0),
-            "D": units_kvah * (ratio_D / 100.0),
-        }
-
-        # compute old durations (hours)
-        old_durations = {}
-        for k, segs in OLD_SLAB_TIMINGS.items():
-            dur = 0.0
-            for seg in segs:
-                try:
-                    s, e = parse_range_str(f"{seg[0]}-{seg[1]}")
-                except Exception:
-                    s, e = 0.0, 0.0
-                if s < e:
-                    seg_len = e - s
-                else:
-                    seg_len = (24.0 - s) + e
-                dur += seg_len
-            old_durations[k] = dur if dur > 0 else 1.0
-
-        # distribute OldUnits into NewUnits based on overlaps
-        NewUnits = {"A": 0.0, "B": 0.0, "C": 0.0, "D": 0.0}
-        for old_k, old_segs in OLD_SLAB_TIMINGS.items():
-            old_total_duration = old_durations[old_k]
-            old_numeric_segs = []
-            for s, e in old_segs:
-                try:
-                    old_numeric_segs.append(parse_range_str(f"{s}-{e}"))
-                except Exception:
-                    pass
-            for old_seg in old_numeric_segs:
-                for new_k, new_segs in new_ranges_parsed.items():
-                    overlap = total_overlap_hours_multi([old_seg], new_segs)
-                    if overlap > 0 and old_total_duration > 0:
-                        NewUnits[new_k] += OldUnits[old_k] * (overlap / old_total_duration)
-
-        # small numerical cleanup
-        for k in NewUnits:
-            if abs(NewUnits[k]) < 1e-9:
-                NewUnits[k] = 0.0
-
-        # ToD charges: multipliers are applied directly (consistent with your prior code)
-        ToD_A = NewUnits["A"] * tod_A
-        ToD_B = NewUnits["B"] * tod_B
-        ToD_C = NewUnits["C"] * tod_C
-        ToD_D = NewUnits["D"] * tod_D
-        ToD_charge = ToD_A + ToD_B + ToD_C + ToD_D
-
-        # --- 4. Other charges ---
-        FAC = units_kvah * FAC_rate
+        FAC = units * FAC_rate
         ED = (ED_percent / 100.0) * (DC + EC + FAC + ToD_charge)
-        ToS = (units_kvah * 0.997) * ToS_rate
-
-        kWh = units_kvah * 0.997
-
-        # Incremental Consumption Rebate (kept same)
+        ToS = (units * 0.997) * ToS_rate
+        kWh = units * 0.997
         ICR = ((kWh - 4044267) * (-0.75))
 
-        # Bulk Consumption Rebate (same logic)
-        def calculate_bulk_consumption_rebate(units: float) -> float:
-            rebate = 0.0
+        def BCR_fn(units):
             if units <= 900000:
-                rebate = units * 0.07
+                return -(units * 0.07)
             elif units <= 5000000:
-                rebate = (900000 * 0.07) + ((units - 900000) * 0.09)
+                return -(900000 * 0.07 + (units - 900000) * 0.09)
             else:
-                rebate = (900000 * 0.07) + (4100000 * 0.09) + ((units - 5000000) * 0.11)
-            return rebate
+                return -(900000 * 0.07 + 4100000 * 0.09 + (units - 5000000) * 0.11)
 
-        BCR = -calculate_bulk_consumption_rebate(units_kvah)
-
-        # Total and discounts
+        BCR = BCR_fn(units)
         Total = DC + EC + ToD_charge + FAC + ED + ToS + BCR + ICR
-        promptPaymentDiscount = (DC + EC + FAC + ToD_charge) * (-0.01)
-        LandedRate = (Total + promptPaymentDiscount) / kWh if kWh > 0 else 0.0
+        PPD = (DC + EC + FAC + ToD_charge) * (-0.01)
+        LandedRate = (Total + PPD) / kWh if kWh > 0 else 0
 
         billing_rows.append({
             "Month": month_name,
@@ -359,26 +223,37 @@ if st.button("Run Calculations for checked months"):
             "ToS": ToS,
             "BCR": BCR,
             "ICR": ICR,
-            "PromptPaymentDisc": promptPaymentDiscount,
+            "PromptPaymentDisc": PPD,
             "Total": Total,
             "LandedRate": LandedRate
         })
 
-    # assemble & display billing dataframe
     if billing_rows:
-        billing_df = pd.DataFrame(billing_rows)
-        cols = ["Month","DC","EC","ToD_charge","FAC","ED","ToS","BCR","ICR","PromptPaymentDisc","Total","LandedRate"]
-        billing_df = billing_df[cols]
-        # Safer formatting: round numeric cols
-        numeric_cols = billing_df.select_dtypes(include="number").columns
-        for col in numeric_cols:
-            billing_df[col] = billing_df[col].round(2)
-
-        st.markdown("## Billing Components (calculated for checked months)")
+        billing_df = pd.DataFrame(billing_rows).round(2)
+        st.markdown("## Billing Components")
         st.dataframe(billing_df, use_container_width=True)
-    else:
-        st.info("No months were checked for calculation. Tick the 'Calc' column for months you want to compute and press the button.")
 
-# Footer
+        # Export
+        st.markdown("### 📤 Export Results")
+        csv_ref = ref_df_edited.to_csv(index=False).encode('utf-8')
+        csv_bill = billing_df.to_csv(index=False).encode('utf-8')
+
+        def to_excel(ref_df, bill_df):
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                ref_df.to_excel(writer, index=False, sheet_name='Reference Table')
+                bill_df.to_excel(writer, index=False, sheet_name='Billing Components')
+            return output.getvalue()
+
+        xlsx_data = to_excel(ref_df_edited, billing_df)
+
+        st.download_button("⬇️ Download Reference Table (CSV)", csv_ref, "reference_table.csv", "text/csv")
+        st.download_button("⬇️ Download Billing Components (CSV)", csv_bill, "billing_components.csv", "text/csv")
+        st.download_button("⬇️ Download All (Excel)", xlsx_data, "Electricity_LandedRate_Report.xlsx", 
+                           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+    else:
+        st.info("No months selected. Tick the 'Calc' column before running.")
+
 st.markdown("---")
-st.caption("Notes: New slab ranges may contain 1 or more ranges (comma/| separated). Overlap logic maps per-month ToD ratio-based old slab units into new slabs (preserving calculation logic).")
+st.caption("Export buttons support CSV & Excel formats.")
