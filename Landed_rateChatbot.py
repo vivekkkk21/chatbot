@@ -161,33 +161,23 @@ st.markdown("## Reference Table")
 st.markdown("## Reference Table (vertical view — parameters as rows, months as columns)")
 
 # Remove Calc row before display (since we show checkboxes separately)
+# --- 2️⃣ Reference Table (editable, no Calc row) ---
+st.markdown("## Reference Table (vertical view — parameters as rows, months as columns)")
+
+# Drop the Calc row (if exists)
 ref_df_vertical_no_calc = ref_df_vertical.drop(index="Calc", errors="ignore")
 
-# Convert all cells to object dtype for editing
-ref_df_vertical_editable = ref_df_vertical_no_calc.astype(object).copy()
+# 🔧 Convert everything to strings so all cells are editable
+ref_df_vertical_editable = ref_df_vertical_no_calc.astype(str).copy()
 
-# Identify numeric-like rows (so we can restore numeric types after editing)
-numeric_like_rows = [
-    "MaxDemand_kVA",
-    "Units_kVAh",
-    "EnergyRate_₹/kVAh",
-    "DC_rate",
-    "FAC_rate",
-    "ToS_rate",
-    "ED_percent",
-    "ToD_mul_A",
-    "ToD_mul_B",
-    "ToD_mul_C",
-    "ToD_mul_D",
-]
-
-# Make editable table (all parameters shown, editable)
+# Editable reference table
 ref_df_vertical_edited = st.data_editor(
     ref_df_vertical_editable,
     use_container_width=True,
     num_rows="fixed",
     key="ref_table_vertical_editor",
 )
+
 
 # --- 3️⃣ Add Calc checkboxes as a bottom row ---
 st.markdown("### Select Months for Calculation")
@@ -388,6 +378,7 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
 
 
