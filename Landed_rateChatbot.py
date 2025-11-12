@@ -146,13 +146,45 @@ ref_df_display = ref_df_horiz.drop(columns=hidden_cols).set_index("Month")  # in
 ref_df_vertical = ref_df_display.T  # index = parameters (rows), columns = months
 
 # show vertical editable table
+#st.markdown("## Reference Table (vertical view — parameters as rows, months as columns)")
+#ref_df_vertical_edited = st.data_editor(
+#    ref_df_vertical,
+#    num_rows="fixed",
+#    use_container_width=True,
+#    key="ref_table_vertical_editor",
+#)
+
 st.markdown("## Reference Table (vertical view — parameters as rows, months as columns)")
+
+# --- 1️⃣ Remove Calc row before displaying ---
+ref_df_vertical_no_calc = ref_df_vertical.drop(index="Calc")
+
+# --- 2️⃣ Display the vertical reference table (editable) ---
 ref_df_vertical_edited = st.data_editor(
-    ref_df_vertical,
+    ref_df_vertical_no_calc,
     num_rows="fixed",
     use_container_width=True,
     key="ref_table_vertical_editor",
 )
+
+# --- 3️⃣ Add Calc checkboxes as a bottom row ---
+st.markdown("### Select Months for Calculation")
+calc_row = ref_df_vertical.loc["Calc"].copy()
+calc_values = {}
+
+calc_cols = st.columns(len(MONTHS))
+for i, month in enumerate(MONTHS):
+    calc_values[month] = calc_cols[i].checkbox(
+        month, 
+        value=bool(calc_row[month]), 
+        key=f"calc_{month}"
+    )
+
+# --- 4️⃣ Add Calc row back after checkbox edits ---
+ref_df_vertical_edited.loc["Calc"] = pd.Series(calc_values)
+
+
+
 
 # convert back to horizontal structure for internal use (months as rows)
 # edited_vertical: index = parameters, columns = months -> transpose to months x parameters
@@ -318,3 +350,4 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
