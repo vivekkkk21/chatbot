@@ -4,7 +4,7 @@ import pandas as pd
 from io import BytesIO
 from typing import List, Tuple
 
-st.set_page_config(page_title="Yearly Landed Unit Rate Calculator", layout="wide", page_icon="⚡")
+st.set_page_config(page_title="Yearly Landed Unit Rate Calculator1", layout="wide", page_icon="⚡")
 st.title("⚡ Yearly Landed Unit Rate Calculator")
 st.markdown("Fill out the **Reference table** to calculate the **Landed Unit rate**. Click checkbox and select appropriate month before calculation")
 
@@ -378,6 +378,7 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats. Multi-range slabs and per-month constants handled automatically.")
+
 
 
 
