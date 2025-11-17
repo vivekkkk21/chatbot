@@ -169,7 +169,7 @@ with left_col:
         slab_D = st.number_input("Slab D (%) [18:00–22:00] (UI field retained)", min_value=0.0, max_value=100.0, value=45.83)
 
     total_ratio = slab_A + slab_B + slab_C + slab_D
-    if total_ratio != 100:
+    if total_ratio != 1:
         st.warning("⚠️ The slab ratios should add up to 100%. Current total: {:.2f}%".format(total_ratio))
 
     st.markdown("---")
@@ -403,6 +403,7 @@ st.caption(
     "Old ToD ratios are fixed (34,34,7,25). New slab timings are editable; any changes "
     "update the ToD distribution using time overlap logic. Constants reset to defaults on page reload."
 )
+
 
 
 
