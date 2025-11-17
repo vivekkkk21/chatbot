@@ -207,7 +207,7 @@ if st.button("Run Calculations for checked months"):
         ToS = (units * 0.997) * ToS_rate
 
         kWh = units * 0.997
-        #ICR = ((kWh - 4044267) * (-0.75))
+       
         if units > 4044267:
             ICR = ((kWh -4044267) * (-0.75))
         else: 
@@ -224,7 +224,7 @@ if st.button("Run Calculations for checked months"):
         BCR = BCR_fn(units)
         Total = DC + EC + ToD_charge + FAC + ED + ToS + BCR - ICR
         PPD = (DC + EC + FAC + ToD_charge) * (-0.01)
-        LandedRate = (Total + PPD) / kWh 
+        LandedRate = (Total + PPD) / (units*0.997) 
 
         billing_rows.append({
             "Month": month_name,
@@ -289,6 +289,7 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats.")
+
 
 
 
