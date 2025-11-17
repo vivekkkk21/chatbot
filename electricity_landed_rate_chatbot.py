@@ -237,7 +237,7 @@ if st.button("Run Calculations for checked months"):
             "BCR": BCR,
             "ICR": ICR,
             "PromptPaymentDisc": PPD,
-            "Total": Total,
+            "Total": Total + PPD,
             "LandedRate": LandedRate
         })
 
@@ -289,6 +289,7 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats.")
+
 
 
 
