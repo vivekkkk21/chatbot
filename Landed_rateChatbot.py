@@ -129,7 +129,7 @@ if st.button("Run Calculations for checked months"):
 
         ToD_charge = 0
         for k in ["A", "B", "C", "D"]:
-            slab_units = kwh * ratios[k]
+            slab_units = kvah * ratios[k]
             ToD_charge += slab_units * multipliers[k]
 
         # ------------------------
@@ -202,4 +202,5 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
 
