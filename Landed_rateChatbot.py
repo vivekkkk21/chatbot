@@ -136,7 +136,7 @@ if st.button("Run Calculations for checked months"):
         # ED, ToS, BCR, ICR
         # ------------------------
         ED = (ED_percent / 100.0) * (DC + EC + FAC + ToD_charge)
-        ToS = kwh * ToS_rate
+        ToS = (kvah * PF) * ToS_rate
 
         if kwh > 4044267:
             ICR = (kwh - 4405453) * (-0.75)
@@ -203,6 +203,7 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
 
 
 
