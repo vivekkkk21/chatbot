@@ -15,7 +15,7 @@ DEFAULT_CONSTANTS = {
     "Value": [600.0, 0.5, 0.18, 7.5],
 }
 
-DEFAULT_TOD_RATIOS = {"A": 33.54, "B": 34.47, "C": 6.83, "D": 25.15}
+DEFAULT_TOD_RATIOS = {"A": 18.86, "B": 7.35, "C": 27.95, "D": 45.83}
 
 MONTHS = [
     "January","February","March","April","May","June",
@@ -48,9 +48,9 @@ def default_row(month_name):
     return {
         "Month": month_name,
         "Calc": False,
-        "PF": 0.95,
+        "PF": 0.997,
         "MaxDemand_kVA": 13500.0,
-        "Units_kVAh": 500000.0,
+        "kvah": 5000000.0,
         "EnergyRate_₹/kVAh": energy_rate,
         "DC_rate": GLOBAL_DC_rate,
         "FAC_rate": GLOBAL_FAC_rate,
@@ -94,8 +94,8 @@ if st.button("Run Calculations for checked months"):
         month = row["Month"]
         PF = float(row["PF"])
         max_demand = float(row["MaxDemand_kVA"])
-        units_kvah = float(row["Units_kVAh"])
-        adj_units = units_kvah * PF  # Option A PF logic
+        kvah = float(row["kvah"])
+        kwh = kvah * PF  # Option A PF logic
 
         energy_rate = float(row["EnergyRate_₹/kVAh"])
         DC_rate = float(row["DC_rate"])
@@ -107,8 +107,8 @@ if st.button("Run Calculations for checked months"):
         # Base Charges
         # ------------------------
         DC = max_demand * DC_rate
-        EC = adj_units * energy_rate
-        FAC = adj_units * FAC_rate
+        EC = kvah * energy_rate
+        FAC = kvah * FAC_rate
 
         # ------------------------
         # ToD Charges
@@ -129,17 +129,17 @@ if st.button("Run Calculations for checked months"):
 
         ToD_charge = 0
         for k in ["A", "B", "C", "D"]:
-            slab_units = adj_units * ratios[k]
+            slab_units = kwh * ratios[k]
             ToD_charge += slab_units * multipliers[k]
 
         # ------------------------
         # ED, ToS, BCR, ICR
         # ------------------------
         ED = (ED_percent / 100.0) * (DC + EC + FAC + ToD_charge)
-        ToS = adj_units * ToS_rate
+        ToS = kwh * ToS_rate
 
-        if adj_units > 4044267:
-            ICR = (adj_units - 4044267) * (-0.75)
+        if kwh > 4044267:
+            ICR = (kwh - 4044267) * (-0.75)
         else:
             ICR = 0
 
@@ -151,15 +151,15 @@ if st.button("Run Calculations for checked months"):
             else:
                 return -(900000 * 0.07 + 4100000 * 0.09 + (units - 5000000) * 0.11)
 
-        BCR = BCR_fn(adj_units)
+        BCR = BCR_fn(kwh)
 
         Total = DC + EC + ToD_charge + FAC + ED + ToS + BCR - ICR
-        PPD = (DC + EC + FAC + ToD_charge) * -0.01
-        LandedRate = (Total + PPD) / adj_units
+        PPD = (DC + EC + FAC + ToD_charge) * (-0.01)
+        LandedRate = (Total + PPD) / kwh
 
         billing_rows.append({
             "Month": month,
-            "Adj_Units(kWh)": adj_units,
+            "kwh(kWh)": kwh,
             "DC": DC,
             "EC": EC,
             "ToD_charge": ToD_charge,
@@ -202,3 +202,4 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
