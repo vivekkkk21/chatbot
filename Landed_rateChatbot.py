@@ -155,7 +155,7 @@ if st.button("Run Calculations for checked months"):
 
         Total = DC + EC + ToD_charge + FAC + ED + ToS + BCR + ICR
         PPD = (DC + EC + FAC + ToD_charge) * (-0.01)
-        LandedRate = (Total + PPD) / kwh
+        LandedRate = (Total - abs(PPD)) / kwh
 
         billing_rows.append({
             "Month": month,
@@ -202,6 +202,7 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
 
 
 
