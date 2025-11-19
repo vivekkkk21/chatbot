@@ -153,7 +153,7 @@ if st.button("Run Calculations for checked months"):
 
         BCR = BCR_fn(kwh)
 
-        Total = DC + EC + ToD_charge + FAC + ED + ToS + BCR + ICR
+        Total = DC + EC + ToD_charge + FAC + ED + ToS + BCR + ICR + PPD
         PPD = (DC + EC + FAC + ToD_charge) * (-0.01)
         LandedRate = (Total - abs(PPD)) / kwh
 
@@ -202,6 +202,7 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
 
 
 
