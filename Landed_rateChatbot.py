@@ -95,7 +95,8 @@ if st.button("Run Calculations for checked months"):
         PF = float(row["PF"])
         max_demand = float(row["MaxDemand_kVA"])
         kvah = float(row["kvah"])
-        kwh = kvah * PF  # Option A PF logic
+        
+        kwh = kvah * PF  
 
         energy_rate = float(row["EnergyRate_₹/kVAh"])
         DC_rate = float(row["DC_rate"])
@@ -203,6 +204,7 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
 
 
 
