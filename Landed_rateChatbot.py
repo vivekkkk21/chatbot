@@ -34,9 +34,9 @@ GLOBAL_ED_percent  = float(const_df.loc[const_df["Parameter"] == "ED_percent", "
 st.markdown("### ⚙️ Energy Rate Settings")
 col1, col2 = st.columns(2)
 with col1:
-    energy_rate_1 = st.number_input("Energy Rate (₹/kVAh) for Jan–Mar", value=8.68, step=0.01)
+    energy_rate_1 = st.number_input("Energy Rate (₹/kVAh) for **Jan–Mar**", value=8.68, step=0.01)
 with col2:
-    energy_rate_2 = st.number_input("Energy Rate (₹/kVAh) for Apr–Dec", value=8.90, step=0.01)
+    energy_rate_2 = st.number_input("Energy Rate (₹/kVAh) for **Apr–Dec**", value=8.90, step=0.01)
 
 # -----------------------------
 # Build Reference Table
@@ -204,6 +204,7 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
 
 
 
