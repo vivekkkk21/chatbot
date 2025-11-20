@@ -130,10 +130,10 @@ if st.button("Run Calculations for checked months"):
 
         #ToD_charge = 0
 
-        slab_units_A = kvah * ratios["A"]
-        slab_units_B = kvah * ratios["B"]
-        slab_units_C = kvah * ratios["C"]
-        slab_units_D = kvah * ratios["D"]
+        slab_units_A = kvah * (ratios["A"]/100)
+        slab_units_B = kvah * (ratios["B"]/100)
+        slab_units_C = kvah * (ratios["C"]/100)
+        slab_units_D = kvah * (ratios["D"]/100)
 
         ToD_A = slab_units_A * multipliers["A"]
         ToD_B = slab_units_B * multipliers["B"]
@@ -217,6 +217,7 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
 
 
 
