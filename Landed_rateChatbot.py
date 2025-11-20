@@ -115,10 +115,10 @@ if st.button("Run Calculations for checked months"):
         # ToD Charges
         # ------------------------
         ratios = {
-            "A": float(row["ToD_ratio_A"]) / 100.0,
-            "B": float(row["ToD_ratio_B"]) / 100.0,
-            "C": float(row["ToD_ratio_C"]) / 100.0,
-            "D": float(row["ToD_ratio_D"]) / 100.0,
+            "A": float(row["ToD_ratio_A"]),
+            "B": float(row["ToD_ratio_B"]),
+            "C": float(row["ToD_ratio_C"]),
+            "D": float(row["ToD_ratio_D"]),
         }
 
         multipliers = {
@@ -217,6 +217,7 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
 
 
 
