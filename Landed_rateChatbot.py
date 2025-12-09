@@ -161,9 +161,9 @@ if st.button("Run Calculations for checked months"):
             if units <= 900000:
                 return -(units * 0.07)
             elif units <= 5000000:
-                return -(900000 * 0.07 + (units - 900000) * 0.09)
+                return -(900000 * 0.07 + (units - 1000000) * 0.09)
             else:
-                return -(900000 * 0.07 + 4100000 * 0.09 + (units - 5000000) * 0.11)
+                return -(900000 * 0.07 + 4000000 * 0.09 + (units - 5000000) * 0.11)
 
         BCR = BCR_fn(kwh)
 
@@ -217,6 +217,7 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
 
 
 
