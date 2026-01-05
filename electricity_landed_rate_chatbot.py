@@ -19,7 +19,7 @@ DEFAULT_CONSTANTS = {
         "Tax on Sale rate (₹ per kWh)",
         "Electricity Duty (percentage %)"
     ],
-    "Value": [600.0, 0.5, 0.18, 7.5],
+    "Value": [600.0, 0.5, 0.2894, 7.5],
 }
 
 OLD_SLAB_TIMINGS = {
@@ -289,6 +289,7 @@ if st.button("Run Calculations for checked months"):
 # Footer
 st.markdown("---")
 st.caption("Export buttons support CSV & Excel formats.")
+
 
 
 
