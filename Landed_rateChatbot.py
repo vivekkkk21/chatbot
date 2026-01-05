@@ -12,7 +12,7 @@ st.markdown("Fill out the **Reference table** to calculate the **Landed Unit rat
 # -----------------------------
 DEFAULT_CONSTANTS = {
     "Parameter": ["DC_rate", "FAC_rate", "ToS_rate", "ED_percent"],
-    "Value": [600.0, 0.5, 0.18, 7.5],
+    "Value": [600.0, 0.5, 0.2894, 7.5],
 }
 
 DEFAULT_TOD_RATIOS = {"A": 18.86, "B": 7.35, "C": 27.95, "D": 45.83}
@@ -217,6 +217,7 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
 
 
 
