@@ -52,7 +52,7 @@ def default_row(month_name):
         "Month": month_name,
         "Calc": False,
         "PF": 0.997,
-        "MaxDemand_kVA": sanctioned_demand * min_bill_demand     #13500.0,
+        "MaxDemand_kVA": sanctioned_demand * min_bill_demand,     #13500.0,
         "kvah": 5000000.0,
         "EnergyRate_₹/kVAh": energy_rate,
         "DC_rate": GLOBAL_DC_rate,
@@ -220,6 +220,7 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
 
 
 
