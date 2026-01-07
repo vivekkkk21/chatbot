@@ -32,13 +32,15 @@ GLOBAL_ED_percent  = float(const_df.loc[const_df["Parameter"] == "ED_percent", "
 # Energy Rate Settings
 # -----------------------------
 st.markdown("### ⚙️ Energy Rate Settings")
-col1, col2, col3 = st.columns(2)
+col1, col2, col3, col4 = st.columns(2)
 with col1:
     energy_rate_1 = st.number_input("Energy Rate (₹/kVAh) for **Jan–Mar**", value=8.68, step=0.01)
 with col2:
     energy_rate_2 = st.number_input("Energy Rate (₹/kVAh) for **Apr–Dec**", value=8.68, step=0.01)
 with col3:
     sanctioned_demand = st.number_input("Sanctioned Demand (kVA)", value= 15750, step = 150)
+with col4:
+    min_bill_demand = st.number_input("Minimum Billable Demand (%)", value= 0.75, step = 0.01)
 # -----------------------------
 # Build Reference Table
 # -----------------------------
@@ -50,7 +52,7 @@ def default_row(month_name):
         "Month": month_name,
         "Calc": False,
         "PF": 0.997,
-        "MaxDemand_kVA": 13500.0,
+        "MaxDemand_kVA": sanctioned_demand * min_bill_demand     #13500.0,
         "kvah": 5000000.0,
         "EnergyRate_₹/kVAh": energy_rate,
         "DC_rate": GLOBAL_DC_rate,
@@ -218,6 +220,7 @@ if st.button("Run Calculations for checked months"):
 
 # Footer
 st.markdown("---")
+
 
 
 
